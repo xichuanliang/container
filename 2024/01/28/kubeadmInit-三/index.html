@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/container.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/container.github.io/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/container.github.io/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/container.github.io/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/container.github.io/css/main.css">
+
+
+<link rel="stylesheet" href="/container.github.io/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="kubeadm Init (三)kubeadm进入第三个阶段(phases.NewKubeConfigPhase())，即创建出master节点所需的所有的conf文件，以及kubeconfig，分别为admin.conf、controller-manager.conf、scheduler.conf、kubelet.conf。在这一阶段生成的conf文件是根据ca.crt以及ca.key生成的。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kubeadmInit (三)">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/01/28/kubeadmInit-%E4%B8%89/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="kubeadm Init (三)kubeadm进入第三个阶段(phases.NewKubeConfigPhase())，即创建出master节点所需的所有的conf文件，以及kubeconfig，分别为admin.conf、controller-manager.conf、scheduler.conf、kubelet.conf。在这一阶段生成的conf文件是根据ca.crt以及ca.key生成的。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-01-28T14:31:39.000Z">
+<meta property="article:modified_time" content="2024-01-28T14:31:59.637Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/01/28/kubeadmInit-%E4%B8%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>kubeadmInit (三) | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/container.github.io/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/container.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/container.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/01/28/kubeadmInit-%E4%B8%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          kubeadmInit (三)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-01-28 22:31:39 / 修改时间：22:31:59" itemprop="dateCreated datePublished" datetime="2024-01-28T22:31:39+08:00">2024-01-28</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="kubeadm-Init-三"><a href="#kubeadm-Init-三" class="headerlink" title="kubeadm Init (三)"></a>kubeadm Init (三)</h2><p>kubeadm进入第三个阶段(phases.NewKubeConfigPhase())，即创建出master节点所需的所有的conf文件，以及kubeconfig，分别为admin.conf、controller-manager.conf、scheduler.conf、kubelet.conf。在这一阶段生成的conf文件是根据ca.crt以及ca.key生成的。</p>
+<ol>
+<li>创建工作流<ul>
+<li>NewKubeConfigFilePhase()：根据name，构建每个子工作流，用于创建不同的config文件，比如admin.conf、kubelet.conf等等。</li>
+</ul>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewKubeConfigPhase</span><span class="params">()</span></span> workflow.Phase &#123;</span><br><span class="line">	<span class="keyword">return</span> workflow.Phase&#123;</span><br><span class="line">		Name:  <span class="string">&quot;kubeconfig&quot;</span>,</span><br><span class="line">		Short: <span class="string">&quot;Generate all kubeconfig files necessary to establish the control plane and the admin kubeconfig file&quot;</span>,</span><br><span class="line">		Long:  cmdutil.MacroCommandLongDescription,</span><br><span class="line">		Phases: []workflow.Phase&#123;</span><br><span class="line">			&#123;</span><br><span class="line">				Name:           <span class="string">&quot;all&quot;</span>,</span><br><span class="line">				Short:          <span class="string">&quot;Generate all kubeconfig files&quot;</span>,</span><br><span class="line">				InheritFlags:   getKubeConfigPhaseFlags(<span class="string">&quot;all&quot;</span>),</span><br><span class="line">				RunAllSiblings: <span class="literal">true</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			NewKubeConfigFilePhase(kubeadmconstants.AdminKubeConfigFileName),</span><br><span class="line">			NewKubeConfigFilePhase(kubeadmconstants.SuperAdminKubeConfigFileName),</span><br><span class="line">			NewKubeConfigFilePhase(kubeadmconstants.KubeletKubeConfigFileName),</span><br><span class="line">			NewKubeConfigFilePhase(kubeadmconstants.ControllerManagerKubeConfigFileName),</span><br><span class="line">			NewKubeConfigFilePhase(kubeadmconstants.SchedulerKubeConfigFileName),</span><br><span class="line">		&#125;,</span><br><span class="line">		Run: runKubeConfig,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>根据每个子工作流，创建对应的config文件<ul>
+<li>构建的子工作流中执行的Run方法，runKubeConfigFile()</li>
+</ul>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewKubeConfigFilePhase</span><span class="params">(kubeConfigFileName <span class="type">string</span>)</span></span> workflow.Phase &#123;</span><br><span class="line">	<span class="keyword">return</span> workflow.Phase&#123;</span><br><span class="line">		Name:         kubeconfigFilePhaseProperties[kubeConfigFileName].name,</span><br><span class="line">		Short:        kubeconfigFilePhaseProperties[kubeConfigFileName].short,</span><br><span class="line">		Long:         fmt.Sprintf(kubeconfigFilePhaseProperties[kubeConfigFileName].long, kubeConfigFileName),</span><br><span class="line">		Run:          runKubeConfigFile(kubeConfigFileName),</span><br><span class="line">		InheritFlags: getKubeConfigPhaseFlags(kubeConfigFileName),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>执行runKubeConfigFile，同证书一起创建config文件<ul>
+<li>如果使用外部的ca颁发证书，直接返回</li>
+<li>data.CertificateWriteDir()：将各个证书的存储路径保存到kubeadm-init.yaml中的InitConfiguration中</li>
+<li>CreateKubeConfigFile()：创建所需的conf文件或者使用已经存在的</li>
+</ul>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">runKubeConfigFile</span><span class="params">(kubeConfigFileName <span class="type">string</span>)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(workflow.RunData)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(c workflow.RunData)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">		data, ok := c.(InitData)</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">&quot;kubeconfig phase invoked with an invalid data struct&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// if external CA mode, skip certificate authority generation</span></span><br><span class="line">		<span class="keyword">if</span> data.ExternalCA() &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;[kubeconfig] External CA mode: Using user provided %s\n&quot;</span>, kubeConfigFileName)</span><br><span class="line">			<span class="comment">// If using an external CA while dryrun, copy kubeconfig files to dryrun dir for later use</span></span><br><span class="line">			<span class="keyword">if</span> data.DryRun() &#123;</span><br><span class="line">				err := kubeadmutil.CopyFile(filepath.Join(kubeadmconstants.KubernetesDir, kubeConfigFileName), filepath.Join(data.KubeConfigDir(), kubeConfigFileName))</span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;could not copy %s to dry run directory %s&quot;</span>, kubeConfigFileName, data.KubeConfigDir())</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// if dryrunning, reads certificates from a temporary folder (and defer restore to the path originally specified by the user)</span></span><br><span class="line">		cfg := data.Cfg()</span><br><span class="line">		cfg.CertificatesDir = data.CertificateWriteDir()</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; cfg.CertificatesDir = data.CertificateDir() &#125;()</span><br><span class="line"></span><br><span class="line">		<span class="comment">// creates the KubeConfig file (or use existing)</span></span><br><span class="line">		<span class="keyword">return</span> kubeconfigphase.CreateKubeConfigFile(kubeConfigFileName, data.KubeConfigDir(), data.Cfg())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>创建conf或者使用已经存在的conf<ul>
+<li>getKubeConfigSpecs()：<ul>
+<li>加载ca.crt和ca.key从对应的文件夹中，ca.crt一般保存在&#x2F;etc&#x2F;kubernetes&#x2F;pki&#x2F;文件中</li>
+<li>验证ca.crt的有效时间，查看当前的证书是否还在有效期内，证书的有效期一般为365天</li>
+<li>为master节点设置ControlPlaneEndpoint或者LocalApiEndpoint。ControlPlaneEndpoint在多master节点的时候做负载均衡，LocalApiEndpoint就是master所在节点的IP。其中如果没有显示这是ControlPlaneEndpoint时，就将LocalApiEndpoint的ip和端口作为ControlPlaneEndpoint的Ip和端口</li>
+<li>初始化admin.conf、super-admin.conf、kubelet.conf、controller-manager.conf以及scheduler.conf的kubeconfigSpec。</li>
+<li>将ca.crt以及ca.key保存在config文件中</li>
+</ul>
+</li>
+<li>buildKubeConfigFromSpec()：<ul>
+<li>创建新的key和crt</li>
+<li>根据新的key和crt创建出conf，每个conf都是由一个基础conf构造而来的。一个基础conf(base conf)包括cluster的相关信息，cluster的name、url、ca.crt、users以及context。</li>
+</ul>
+</li>
+<li>createKubeConfigFileIfNotExists()：<ul>
+<li>获取conf路径</li>
+<li>验证conf的有效性。加载conf，判断文件是否存在，如果存在，判断CA、URL是否相同。如果都相同就用存在的conf。如果conf不存在或者CA不同或者URL不同，就报错。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateKubeConfigFile</span><span class="params">(kubeConfigFileName <span class="type">string</span>, outDir <span class="type">string</span>, cfg *kubeadmapi.InitConfiguration)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	klog.V(<span class="number">1</span>).Infof(<span class="string">&quot;creating kubeconfig file for %s&quot;</span>, kubeConfigFileName)</span><br><span class="line">	<span class="keyword">return</span> createKubeConfigFiles(outDir, cfg, kubeConfigFileName)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">createKubeConfigFiles</span><span class="params">(outDir <span class="type">string</span>, cfg *kubeadmapi.InitConfiguration, kubeConfigFileNames ...<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// gets the KubeConfigSpecs, actualized for the current InitConfiguration</span></span><br><span class="line">	specs, err := getKubeConfigSpecs(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, kubeConfigFileName := <span class="keyword">range</span> kubeConfigFileNames &#123;</span><br><span class="line">		<span class="comment">// retrieves the KubeConfigSpec for given kubeConfigFileName</span></span><br><span class="line">		spec, exists := specs[kubeConfigFileName]</span><br><span class="line">		<span class="keyword">if</span> !exists &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.Errorf(<span class="string">&quot;couldn&#x27;t retrieve KubeConfigSpec for %s&quot;</span>, kubeConfigFileName)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// builds the KubeConfig object</span></span><br><span class="line">		config, err := buildKubeConfigFromSpec(spec, cfg.ClusterName, <span class="literal">nil</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// writes the kubeconfig to disk if it does not exist</span></span><br><span class="line">		<span class="keyword">if</span> err = createKubeConfigFileIfNotExists(outDir, kubeConfigFileName, config); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>以controller-manager.conf为例<ul>
+<li>certificate-authority-data：用于验证kube-apiserver服务器证书的CA根证书</li>
+<li>client-certificate-data：用于访问kube-apiserver的客户端证书</li>
+<li>client-key-data：客户端证书对应的私钥</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">clusters:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">cluster:</span></span><br><span class="line">    <span class="attr">certificate-authority-data:</span> <span class="string">LS0tLS1CRUdJTiBDRVJUSUZJQ0FXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXVElGSUNBVEUtLS0tLQo=</span></span><br><span class="line">    <span class="attr">server:</span> <span class="string">https://apiserver.cluster.local:6443</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubernetes</span></span><br><span class="line"><span class="attr">contexts:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">context:</span></span><br><span class="line">    <span class="attr">cluster:</span> <span class="string">kubernetes</span></span><br><span class="line">    <span class="attr">user:</span> <span class="string">system:kube-controller-manager</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:kube-controller-manager@kubernetes</span></span><br><span class="line"><span class="attr">current-context:</span> <span class="string">system:kube-controller-manager@kubernetes</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Config</span></span><br><span class="line"><span class="attr">preferences:</span> &#123;&#125;</span><br><span class="line"><span class="attr">users:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">name:</span> <span class="string">system:kube-controller-manager</span></span><br><span class="line">  <span class="attr">user:</span></span><br><span class="line">    <span class="attr">client-certificate-data:</span> <span class="string">LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLSXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span></span><br><span class="line">    <span class="attr">client-key-data:</span> <span class="string">LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/container.github.io/2024/01/24/kubeadmInit-%E4%BA%8C/" rel="prev" title="kubeadmInit (二)">
+      <i class="fa fa-chevron-left"></i> kubeadmInit (二)
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#kubeadm-Init-%E4%B8%89"><span class="nav-number">1.</span> <span class="nav-text">kubeadm Init (三)</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/container.github.io/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/container.github.io/lib/anime.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/container.github.io/js/utils.js"></script>
+
+<script src="/container.github.io/js/motion.js"></script>
+
+
+<script src="/container.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="/container.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
