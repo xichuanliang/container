@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/container.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/container.github.io/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/container.github.io/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/container.github.io/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/container.github.io/css/main.css">
+
+
+<link rel="stylesheet" href="/container.github.io/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="kubeadm Init (五)创建kube-apiserver、kube-controller-manager、kube-scheduler的静态pod的yaml文件  创建工作流 该工作流中存在三个子工作流，分别用于创建apiserver、controller-manager、scheduler的静态pod文件    123456789101112131415161718192021func">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kubeadmInit (五)">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="kubeadm Init (五)创建kube-apiserver、kube-controller-manager、kube-scheduler的静态pod的yaml文件  创建工作流 该工作流中存在三个子工作流，分别用于创建apiserver、controller-manager、scheduler的静态pod文件    123456789101112131415161718192021func">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-20T13:53:17.000Z">
+<meta property="article:modified_time" content="2024-02-20T13:53:37.291Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>kubeadmInit (五) | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/container.github.io/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/container.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/container.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          kubeadmInit (五)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-02-20 21:53:17 / 修改时间：21:53:37" itemprop="dateCreated datePublished" datetime="2024-02-20T21:53:17+08:00">2024-02-20</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="kubeadm-Init-五"><a href="#kubeadm-Init-五" class="headerlink" title="kubeadm Init (五)"></a>kubeadm Init (五)</h2><p>创建kube-apiserver、kube-controller-manager、kube-scheduler的静态pod的yaml文件</p>
+<ul>
+<li>创建工作流<ul>
+<li>该工作流中存在三个子工作流，分别用于创建apiserver、controller-manager、scheduler的静态pod文件</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewControlPlanePhase</span><span class="params">()</span></span> workflow.Phase &#123;</span><br><span class="line">	phase := workflow.Phase&#123;</span><br><span class="line">		Name:  <span class="string">&quot;control-plane&quot;</span>,</span><br><span class="line">		Short: <span class="string">&quot;Generate all static Pod manifest files necessary to establish the control plane&quot;</span>,</span><br><span class="line">		Long:  cmdutil.MacroCommandLongDescription,</span><br><span class="line">		Phases: []workflow.Phase&#123;</span><br><span class="line">			&#123;</span><br><span class="line">				Name:           <span class="string">&quot;all&quot;</span>,</span><br><span class="line">				Short:          <span class="string">&quot;Generate all static Pod manifest files&quot;</span>,</span><br><span class="line">				InheritFlags:   getControlPlanePhaseFlags(<span class="string">&quot;all&quot;</span>),</span><br><span class="line">				Example:        controlPlaneExample,</span><br><span class="line">				RunAllSiblings: <span class="literal">true</span>,</span><br><span class="line">			&#125;,</span><br><span class="line">			newControlPlaneSubphase(kubeadmconstants.KubeAPIServer),</span><br><span class="line">			newControlPlaneSubphase(kubeadmconstants.KubeControllerManager),</span><br><span class="line">			newControlPlaneSubphase(kubeadmconstants.KubeScheduler),</span><br><span class="line">		&#125;,</span><br><span class="line">		Run: runControlPlanePhase,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> phase</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>子工作流<ul>
+<li>根据传入的参数不同，执行相应的工作流</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newControlPlaneSubphase</span><span class="params">(component <span class="type">string</span>)</span></span> workflow.Phase &#123;</span><br><span class="line">	phase := workflow.Phase&#123;</span><br><span class="line">		Name:         controlPlanePhaseProperties[component].name,</span><br><span class="line">		Short:        controlPlanePhaseProperties[component].short,</span><br><span class="line">		Run:          runControlPlaneSubphase(component),</span><br><span class="line">		InheritFlags: getControlPlanePhaseFlags(component),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> phase</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">runControlPlaneSubphase</span><span class="params">(component <span class="type">string</span>)</span></span> <span class="function"><span class="keyword">func</span><span class="params">(c workflow.RunData)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(c workflow.RunData)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">		data, ok := c.(InitData)</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">&quot;control-plane phase invoked with an invalid data struct&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		cfg := data.Cfg()</span><br><span class="line"></span><br><span class="line">		fmt.Printf(<span class="string">&quot;[control-plane] Creating static Pod manifest for %q\n&quot;</span>, component)</span><br><span class="line">		<span class="keyword">return</span> controlplane.CreateStaticPodFiles(data.ManifestDir(), data.PatchesDir(), &amp;cfg.ClusterConfiguration, &amp;cfg.LocalAPIEndpoint, data.DryRun(), component)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>创建对应静态pod的yaml文件<ul>
+<li>GetStaticPodSpecs()：获取静态的podspec，比如获得KubeAPIServer的podSpec、KubeControllerManager的podSpec以及KubeScheduler的podSpec。在这三个的podSpec文件中，主要是包含了pod内容器的启动命令、镜像名称、卷的挂载、探针等等。</li>
+<li>最终将静态pod的yaml写入&#x2F;etc&#x2F;kubernetes&#x2F;manifests&#x2F;中</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateStaticPodFiles</span><span class="params">(manifestDir, patchesDir <span class="type">string</span>, cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmapi.APIEndpoint, isDryRun <span class="type">bool</span>, componentNames ...<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// gets the StaticPodSpecs, actualized for the current ClusterConfiguration</span></span><br><span class="line">	klog.V(<span class="number">1</span>).Infoln(<span class="string">&quot;[control-plane] getting StaticPodSpecs&quot;</span>)</span><br><span class="line">	specs := GetStaticPodSpecs(cfg, endpoint, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> usersAndGroups *users.UsersAndGroups</span><br><span class="line">	<span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">	<span class="keyword">if</span> features.Enabled(cfg.FeatureGates, features.RootlessControlPlane) &#123;</span><br><span class="line">		<span class="keyword">if</span> isDryRun &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot;[control-plane] Would create users and groups for %+v to run as non-root\n&quot;</span>, componentNames)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			usersAndGroups, err = staticpodutil.GetUsersAndGroups()</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> errors.Wrap(err, <span class="string">&quot;failed to create users and groups&quot;</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// creates required static pod specs</span></span><br><span class="line">	<span class="keyword">for</span> _, componentName := <span class="keyword">range</span> componentNames &#123;</span><br><span class="line">		<span class="comment">// retrieves the StaticPodSpec for given component</span></span><br><span class="line">		spec, exists := specs[componentName]</span><br><span class="line">		<span class="keyword">if</span> !exists &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.Errorf(<span class="string">&quot;couldn&#x27;t retrieve StaticPodSpec for %q&quot;</span>, componentName)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// print all volumes that are mounted</span></span><br><span class="line">		<span class="keyword">for</span> _, v := <span class="keyword">range</span> spec.Spec.Volumes &#123;</span><br><span class="line">			klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;[control-plane] adding volume %q for component %q&quot;</span>, v.Name, componentName)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> features.Enabled(cfg.FeatureGates, features.RootlessControlPlane) &#123;</span><br><span class="line">			<span class="keyword">if</span> isDryRun &#123;</span><br><span class="line">				fmt.Printf(<span class="string">&quot;[control-plane] Would update static pod manifest for %q to run run as non-root\n&quot;</span>, componentName)</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> usersAndGroups != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">if</span> err := staticpodutil.RunComponentAsNonRoot(componentName, &amp;spec, usersAndGroups, cfg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">						<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;failed to run component %q as non-root&quot;</span>, componentName)</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// if patchesDir is defined, patch the static Pod manifest</span></span><br><span class="line">		<span class="keyword">if</span> patchesDir != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			patchedSpec, err := staticpodutil.PatchStaticPod(&amp;spec, patchesDir, os.Stdout)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;failed to patch static Pod manifest file for %q&quot;</span>, componentName)</span><br><span class="line">			&#125;</span><br><span class="line">			spec = *patchedSpec</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// writes the StaticPodSpec to disk</span></span><br><span class="line">		<span class="keyword">if</span> err := staticpodutil.WriteStaticPodToDisk(componentName, manifestDir, spec); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> errors.Wrapf(err, <span class="string">&quot;failed to create static pod manifest file for %q&quot;</span>, componentName)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		klog.V(<span class="number">1</span>).Infof(<span class="string">&quot;[control-plane] wrote static Pod manifest for component %q to %q\n&quot;</span>, componentName, kubeadmconstants.GetStaticPodFilepath(componentName, manifestDir))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>根据配置文件生成的相应的PodSpec</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetStaticPodSpecs</span><span class="params">(cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmapi.APIEndpoint, proxyEnvs []kubeadmapi.EnvVar)</span></span> <span class="keyword">map</span>[<span class="type">string</span>]v1.Pod &#123;</span><br><span class="line">	<span class="comment">// Get the required hostpath mounts</span></span><br><span class="line">	mounts := getHostPathVolumesForTheControlPlane(cfg)</span><br><span class="line">	<span class="keyword">if</span> proxyEnvs == <span class="literal">nil</span> &#123;</span><br><span class="line">		proxyEnvs = kubeadmutil.GetProxyEnvVars()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Prepare static pod specs</span></span><br><span class="line">	staticPodSpecs := <span class="keyword">map</span>[<span class="type">string</span>]v1.Pod&#123;</span><br><span class="line">		kubeadmconstants.KubeAPIServer: staticpodutil.ComponentPod(v1.Container&#123;</span><br><span class="line">			Name:            kubeadmconstants.KubeAPIServer,</span><br><span class="line">			Image:           images.GetKubernetesImage(kubeadmconstants.KubeAPIServer, cfg),</span><br><span class="line">			ImagePullPolicy: v1.PullIfNotPresent,</span><br><span class="line">			Command:         getAPIServerCommand(cfg, endpoint),</span><br><span class="line">			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeAPIServer)),</span><br><span class="line">			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetAPIServerProbeAddress(endpoint), <span class="string">&quot;/livez&quot;</span>, endpoint.BindPort, v1.URISchemeHTTPS),</span><br><span class="line">			ReadinessProbe:  staticpodutil.ReadinessProbe(staticpodutil.GetAPIServerProbeAddress(endpoint), <span class="string">&quot;/readyz&quot;</span>, endpoint.BindPort, v1.URISchemeHTTPS),</span><br><span class="line">			StartupProbe:    staticpodutil.StartupProbe(staticpodutil.GetAPIServerProbeAddress(endpoint), <span class="string">&quot;/livez&quot;</span>, endpoint.BindPort, v1.URISchemeHTTPS, cfg.APIServer.TimeoutForControlPlane),</span><br><span class="line">			Resources:       staticpodutil.ComponentResources(<span class="string">&quot;250m&quot;</span>),</span><br><span class="line">			Env:             kubeadmutil.MergeKubeadmEnvVars(proxyEnvs, cfg.APIServer.ExtraEnvs),</span><br><span class="line">		&#125;, mounts.GetVolumes(kubeadmconstants.KubeAPIServer),</span><br><span class="line">			<span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>&#123;kubeadmconstants.KubeAPIServerAdvertiseAddressEndpointAnnotationKey: endpoint.String()&#125;),</span><br><span class="line">		kubeadmconstants.KubeControllerManager: staticpodutil.ComponentPod(v1.Container&#123;</span><br><span class="line">			Name:            kubeadmconstants.KubeControllerManager,</span><br><span class="line">			Image:           images.GetKubernetesImage(kubeadmconstants.KubeControllerManager, cfg),</span><br><span class="line">			ImagePullPolicy: v1.PullIfNotPresent,</span><br><span class="line">			Command:         getControllerManagerCommand(cfg),</span><br><span class="line">			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeControllerManager)),</span><br><span class="line">			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetControllerManagerProbeAddress(cfg), <span class="string">&quot;/healthz&quot;</span>, kubeadmconstants.KubeControllerManagerPort, v1.URISchemeHTTPS),</span><br><span class="line">			StartupProbe:    staticpodutil.StartupProbe(staticpodutil.GetControllerManagerProbeAddress(cfg), <span class="string">&quot;/healthz&quot;</span>, kubeadmconstants.KubeControllerManagerPort, v1.URISchemeHTTPS, cfg.APIServer.TimeoutForControlPlane),</span><br><span class="line">			Resources:       staticpodutil.ComponentResources(<span class="string">&quot;200m&quot;</span>),</span><br><span class="line">			Env:             kubeadmutil.MergeKubeadmEnvVars(proxyEnvs, cfg.ControllerManager.ExtraEnvs),</span><br><span class="line">		&#125;, mounts.GetVolumes(kubeadmconstants.KubeControllerManager), <span class="literal">nil</span>),</span><br><span class="line">		kubeadmconstants.KubeScheduler: staticpodutil.ComponentPod(v1.Container&#123;</span><br><span class="line">			Name:            kubeadmconstants.KubeScheduler,</span><br><span class="line">			Image:           images.GetKubernetesImage(kubeadmconstants.KubeScheduler, cfg),</span><br><span class="line">			ImagePullPolicy: v1.PullIfNotPresent,</span><br><span class="line">			Command:         getSchedulerCommand(cfg),</span><br><span class="line">			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeScheduler)),</span><br><span class="line">			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetSchedulerProbeAddress(cfg), <span class="string">&quot;/healthz&quot;</span>, kubeadmconstants.KubeSchedulerPort, v1.URISchemeHTTPS),</span><br><span class="line">			StartupProbe:    staticpodutil.StartupProbe(staticpodutil.GetSchedulerProbeAddress(cfg), <span class="string">&quot;/healthz&quot;</span>, kubeadmconstants.KubeSchedulerPort, v1.URISchemeHTTPS, cfg.APIServer.TimeoutForControlPlane),</span><br><span class="line">			Resources:       staticpodutil.ComponentResources(<span class="string">&quot;100m&quot;</span>),</span><br><span class="line">			Env:             kubeadmutil.MergeKubeadmEnvVars(proxyEnvs, cfg.Scheduler.ExtraEnvs),</span><br><span class="line">		&#125;, mounts.GetVolumes(kubeadmconstants.KubeScheduler), <span class="literal">nil</span>),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> staticPodSpecs</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/container.github.io/2024/02/18/kubeadmInit-%E5%9B%9B/" rel="prev" title="kubeadmInit (四)">
+      <i class="fa fa-chevron-left"></i> kubeadmInit (四)
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#kubeadm-Init-%E4%BA%94"><span class="nav-number">1.</span> <span class="nav-text">kubeadm Init (五)</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/container.github.io/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/container.github.io/lib/anime.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/container.github.io/js/utils.js"></script>
+
+<script src="/container.github.io/js/motion.js"></script>
+
+
+<script src="/container.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="/container.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
