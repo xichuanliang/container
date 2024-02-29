@@ -20,15 +20,19 @@
     var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
-<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/archives/2024/index.html">
+  <meta name="description" content="Kubeadm Init (finally) NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。 kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。 将env变量写入">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kubeadm init (Finally)">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/index.html">
 <meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Kubeadm Init (finally) NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。 kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。 将env变量写入">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-29T14:49:33.000Z">
+<meta property="article:modified_time" content="2024-02-29T14:50:00.121Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/archives/2024/">
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/">
 
 
 <script id="page-configurations">
@@ -36,12 +40,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>归档 | Hexo</title>
+  <title>kubeadm init (Finally) | Hexo</title>
   
 
 
@@ -139,150 +143,116 @@
         <div class="content-wrap">
           
 
-          <div class="content archive">
+          <div class="content post posts-expand">
             
 
+    
   
   
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <span class="collection-header">嗯..! 目前共计 8 篇日志。 继续努力。</span>
-      </div>
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          kubeadm init (Finally)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-02-29 22:49:33 / 修改时间：22:50:00" itemprop="dateCreated datePublished" datetime="2024-02-29T22:49:33+08:00">2024-02-29</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2024</span>
-    </div>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-02-29T22:49:33+08:00"
-              content="2024-02-29">
-          02-29
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/02/29/kubeadm-init-Finally/" itemprop="url">
-            <span itemprop="name">kubeadm init (Finally)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-02-20T21:53:17+08:00"
-              content="2024-02-20">
-          02-20
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/" itemprop="url">
-            <span itemprop="name">kubeadmInit (五)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-02-18T20:45:52+08:00"
-              content="2024-02-18">
-          02-18
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/02/18/kubeadmInit-%E5%9B%9B/" itemprop="url">
-            <span itemprop="name">kubeadmInit (四)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-01-28T22:31:39+08:00"
-              content="2024-01-28">
-          01-28
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/01/28/kubeadmInit-%E4%B8%89/" itemprop="url">
-            <span itemprop="name">kubeadmInit (三)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-01-24T21:21:43+08:00"
-              content="2024-01-24">
-          01-24
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/01/24/kubeadmInit-%E4%BA%8C/" itemprop="url">
-            <span itemprop="name">kubeadmInit (二)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2024-01-07T20:08:44+08:00"
-              content="2024-01-07">
-          01-07
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/container.github.io/2024/01/07/kubeadmInit-%E4%B8%80/" itemprop="url">
-            <span itemprop="name">kubeadmInit (一)</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
+        <h2 id="Kubeadm-Init-finally"><a href="#Kubeadm-Init-finally" class="headerlink" title="Kubeadm Init (finally)"></a>Kubeadm Init (finally)</h2><ul>
+<li>NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。<ul>
+<li>kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。</li>
+<li>将env变量写入&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;kubeadm-flags.env</li>
+</ul>
+</li>
+<li>NewWaitControlPlanePhase：是在控制平面和 etcd 阶段之后运行的隐藏阶段，作用是等待控制面节点任务的执行，如果 kubelet 启动异常或者控制面节点崩溃将会停止后面的流程。<ul>
+<li>任务：kubelet监视&#x2F;etc&#x2F;kubernetes&#x2F;manifest中的文件等待创建静态Pod。</li>
+</ul>
+</li>
+<li>NewUploadConfigPhase：上传kubeadm配置和kubelet配置。<ul>
+<li>主要是创建名称为kubeadm-config和kubelet-config的configmap</li>
+<li>写入crisocket的信息（kubeadm.alpha.kubernetes.io&#x2F;cri-socket: unix:&#x2F;&#x2F;&#x2F;var&#x2F;run&#x2F;cri-dockerd.sock）到node资源中。</li>
+</ul>
+</li>
+<li>NewUploadCertsPhase：上传证书。<ul>
+<li>上传证书存入kubeam-certs的secret中。</li>
+<li>当新的节点加入到control plane中时需要用到。</li>
+</ul>
+</li>
+<li>NewMarkControlPlanePhase：对于master节点添加污点<ul>
+<li>添加 node-role.kubernetes.io&#x2F;control-plane&#x3D;NoSchedule node.kubernetes.io&#x2F;exclude-from-external-load-balancers&#x3D;NoSchedule</li>
+</ul>
+</li>
+<li>NewBootstrapTokenPhase：保证新节点能够加入集群中<ul>
+<li>生成bootstrap token和ca证书configmap</li>
+<li>创建RBAC规则，后续 node 可以通过生成的 token join加入集群。</li>
+</ul>
+</li>
+<li>NewKubeletFinalizePhase：更换kubelet的证书<ul>
+<li>在 TLS 引导后更新与 kubelet 相关的设置，其实就是将kubelet与kube-apiserver通信的kubeconfig文件中的证书替换成由kube-controller-manager签发返回的证书</li>
+</ul>
+</li>
+<li>NewAddonPhase：通过 API安装一个 DNS 服务器 (CoreDNS) 和 kube-proxy 附加组件<ul>
+<li>在kubeadm代码中已经保存了创建coreDNS的service，deployment，clusterole，ClusterRoleBinding。只需调用client-go的api就能创建coreDNS。</li>
+<li>在kubeadm代码中已经保存了创建kube-proxy的service，daemonset，clusterole，ClusterRoleBinding。只需调用client-go的api就能创建kube-proxy。</li>
+</ul>
+</li>
+<li>NewShowJoinCommandPhase：打印初始化成功的命令，同时为用户提供后续的操作指导，例如工作节点的加入等。</li>
+</ul>
 
     </div>
-  </div>
-  
-  
-  
 
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/" rel="prev" title="kubeadmInit (五)">
+      <i class="fa fa-chevron-left"></i> kubeadmInit (五)
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
   
 
 
@@ -335,6 +305,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Kubeadm-Init-finally"><span class="nav-number">1.</span> <span class="nav-text">Kubeadm Init (finally)</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
