@@ -20,19 +20,28 @@
     var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="Kubeadm Init (finally) NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。 kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。 将env变量写入">
+  <meta name="description" content="node能否ping通service的ClusterIP？ 现象：  ​        在1.21版本的k8s集群中，在node节点能够ping通service的ClusterIP，但是在1.27版本的k8s集群中，在node节点无法ping通service的ClusterIP。    观察：  ping IP，报的错误是Destination Port Unreachable。   上网查询可能">
 <meta property="og:type" content="article">
-<meta property="og:title" content="kubeadm init (Finally)">
-<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/index.html">
+<meta property="og:title" content="ping service?">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/03/03/ping-service/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="Kubeadm Init (finally) NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。 kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。 将env变量写入">
+<meta property="og:description" content="node能否ping通service的ClusterIP？ 现象：  ​        在1.21版本的k8s集群中，在node节点能够ping通service的ClusterIP，但是在1.27版本的k8s集群中，在node节点无法ping通service的ClusterIP。    观察：  ping IP，报的错误是Destination Port Unreachable。   上网查询可能">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2024-02-29T14:49:33.000Z">
-<meta property="article:modified_time" content="2024-02-29T14:50:00.121Z">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225740880.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225842963.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151256063.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151423352.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153531730.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153614230.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155719695.png">
+<meta property="og:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155830139.png">
+<meta property="article:published_time" content="2024-03-03T08:09:19.000Z">
+<meta property="article:modified_time" content="2024-03-03T08:10:20.812Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="c:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225740880.png">
 
-<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/">
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/03/03/ping-service/">
 
 
 <script id="page-configurations">
@@ -45,7 +54,7 @@
   };
 </script>
 
-  <title>kubeadm init (Finally) | Hexo</title>
+  <title>ping service? | Hexo</title>
   
 
 
@@ -150,7 +159,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/02/29/kubeadm-init-Finally/">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/03/03/ping-service/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/container.github.io/images/avatar.gif">
@@ -163,7 +172,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          kubeadm init (Finally)
+          ping service?
         </h1>
 
         <div class="post-meta">
@@ -174,7 +183,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2024-02-29 22:49:33 / 修改时间：22:50:00" itemprop="dateCreated datePublished" datetime="2024-02-29T22:49:33+08:00">2024-02-29</time>
+              <time title="创建时间：2024-03-03 16:09:19 / 修改时间：16:10:20" itemprop="dateCreated datePublished" datetime="2024-03-03T16:09:19+08:00">2024-03-03</time>
             </span>
 
           
@@ -188,45 +197,48 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="Kubeadm-Init-finally"><a href="#Kubeadm-Init-finally" class="headerlink" title="Kubeadm Init (finally)"></a>Kubeadm Init (finally)</h2><ul>
-<li>NewKubeletStartPhase：为节点写入Kubelet的配置文件，启动kubelet。<ul>
-<li>kubelet的配置文件为&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;config.yaml。该函数如果发现kubelet服务的状态为inactive，执行相应的Kubeadm 命令能够重启kubelet。</li>
-<li>将env变量写入&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;kubeadm-flags.env</li>
+        <h2 id="node能否ping通service的ClusterIP？"><a href="#node能否ping通service的ClusterIP？" class="headerlink" title="node能否ping通service的ClusterIP？"></a>node能否ping通service的ClusterIP？</h2><ul>
+<li>现象：</li>
+</ul>
+<p>​        在1.21版本的k8s集群中，在node节点能够ping通service的ClusterIP，但是在1.27版本的k8s集群中，在node节点无法ping通service的ClusterIP。</p>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225740880.png" alt="image-20240302225740880"></p>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225842963.png" alt="image-20240302225842963"></p>
+<ul>
+<li><p>观察：</p>
+<ul>
+<li>ping IP，报的错误是Destination Port Unreachable。</li>
 </ul>
 </li>
-<li>NewWaitControlPlanePhase：是在控制平面和 etcd 阶段之后运行的隐藏阶段，作用是等待控制面节点任务的执行，如果 kubelet 启动异常或者控制面节点崩溃将会停止后面的流程。<ul>
-<li>任务：kubelet监视&#x2F;etc&#x2F;kubernetes&#x2F;manifest中的文件等待创建静态Pod。</li>
+<li><p>上网查询可能的原因以及解决方案：</p>
+<ul>
+<li>原因：在k8s中，如果kube-proxy使用的是iptables，service会出现ping不同ClusterIP。在ipvs的模式下，是能够ping通ClusterIP。</li>
+<li>验证结果：在两台虚拟机中，同时验证是否开启了ipvs，以及kube-proxy的模式是什么。发现，两台虚拟机都开启了ipvs，并且都是ipvs的模式。</li>
+</ul>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151256063.png" alt="image-20240303151256063"></p>
+<p>​																configmap for kube-proxy</p>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151423352.png" alt="image-20240303151423352"></p>
+<p>​																						ipvs</p>
+<ul>
+<li>分析：会不会是service转发到Pod的ip:port出现问题呢？</li>
+<li>过程：首先使用ipvsadm -L -n，查看ipvs是否能够负载均衡到pod的ip:port。继续查看pod的ip:port是否正常。</li>
+<li>结果：ipvs存在对应的规则，以及pod是正常的，能够ping通的。</li>
+</ul>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153531730.png" alt="image-20240303153531730"></p>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153614230.png" alt="image-20240303153614230"></p>
+<ul>
+<li>分析：以上情况说明，只能是service本身问题，或者从主机发送的icmp报文被拦截了。service本身只是一个虚拟ip，绑定在kube-ipvs0网卡中，当请求这个service的ClusterIP时，能够直接到达input链进行处理。所以service不太可能出现什么问题。那么，问题大概率是在ping命令发送的报文被拦截了。</li>
+<li>过程：使用iptables -L -n -t命令查看kube-proxy和ipvs生成的链，查看包在经过内核处理的时候做了什么。</li>
+<li>结果：kube-proxy创建了KUBE-IPVS-FILTER链拒绝了所有KUBE-IPVS-IPS中的IP。而KUBE-IPVS-IPS中的IP保存了所有service的ClusterIP。而在1.21版本的k8s中，并没有该KUBE-IPVS-FILTER链。</li>
+</ul>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155719695.png" alt="image-20240303155719695"></p>
+<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155830139.png" alt="image-20240303155830139"></p>
+<p>​																															k8s-1.27</p>
+</li>
+<li><p>结论：</p>
+<ul>
+<li>在1.27版本的k8s中，增加了主机对service的ClusterIP的链，阻止了主机对service进行ping命令。</li>
 </ul>
 </li>
-<li>NewUploadConfigPhase：上传kubeadm配置和kubelet配置。<ul>
-<li>主要是创建名称为kubeadm-config和kubelet-config的configmap</li>
-<li>写入crisocket的信息（kubeadm.alpha.kubernetes.io&#x2F;cri-socket: unix:&#x2F;&#x2F;&#x2F;var&#x2F;run&#x2F;cri-dockerd.sock）到node资源中。</li>
-</ul>
-</li>
-<li>NewUploadCertsPhase：上传证书。<ul>
-<li>上传证书存入kubeam-certs的secret中。</li>
-<li>当新的节点加入到control plane中时需要用到。</li>
-</ul>
-</li>
-<li>NewMarkControlPlanePhase：对于master节点添加污点<ul>
-<li>添加 node-role.kubernetes.io&#x2F;control-plane&#x3D;NoSchedule node.kubernetes.io&#x2F;exclude-from-external-load-balancers&#x3D;NoSchedule</li>
-</ul>
-</li>
-<li>NewBootstrapTokenPhase：保证新节点能够加入集群中<ul>
-<li>生成bootstrap token和ca证书configmap</li>
-<li>创建RBAC规则，后续 node 可以通过生成的 token join加入集群。</li>
-</ul>
-</li>
-<li>NewKubeletFinalizePhase：更换kubelet的证书<ul>
-<li>在 TLS 引导后更新与 kubelet 相关的设置，其实就是将kubelet与kube-apiserver通信的kubeconfig文件中的证书替换成由kube-controller-manager签发返回的证书</li>
-</ul>
-</li>
-<li>NewAddonPhase：通过 API安装一个 DNS 服务器 (CoreDNS) 和 kube-proxy 附加组件<ul>
-<li>在kubeadm代码中已经保存了创建coreDNS的service，deployment，clusterole，ClusterRoleBinding。只需调用client-go的api就能创建coreDNS。</li>
-<li>在kubeadm代码中已经保存了创建kube-proxy的service，daemonset，clusterole，ClusterRoleBinding。只需调用client-go的api就能创建kube-proxy。</li>
-</ul>
-</li>
-<li>NewShowJoinCommandPhase：打印初始化成功的命令，同时为用户提供后续的操作指导，例如工作节点的加入等。</li>
 </ul>
 
     </div>
@@ -243,13 +255,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/" rel="prev" title="kubeadmInit (五)">
-      <i class="fa fa-chevron-left"></i> kubeadmInit (五)
+    <a href="/container.github.io/2024/02/29/kubeadm-init-Finally/" rel="prev" title="kubeadm init (Finally)">
+      <i class="fa fa-chevron-left"></i> kubeadm init (Finally)
     </a></div>
-      <div class="post-nav-item">
-    <a href="/container.github.io/2024/03/03/ping-service/" rel="next" title="ping service?">
-      ping service? <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -308,7 +317,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Kubeadm-Init-finally"><span class="nav-number">1.</span> <span class="nav-text">Kubeadm Init (finally)</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#node%E8%83%BD%E5%90%A6ping%E9%80%9Aservice%E7%9A%84ClusterIP%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">node能否ping通service的ClusterIP？</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
