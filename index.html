@@ -168,10 +168,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2024-03-03 16:09:19 / 修改时间：16:10:20" itemprop="dateCreated datePublished" datetime="2024-03-03T16:09:19+08:00">2024-03-03</time>
+              <time title="创建时间：2024-03-03 16:09:19" itemprop="dateCreated datePublished" datetime="2024-03-03T16:09:19+08:00">2024-03-03</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-03-08 20:51:57" itemprop="dateModified" datetime="2024-03-08T20:51:57+08:00">2024-03-08</time>
+              </span>
 
           
 
@@ -188,7 +194,9 @@
 <li>现象：</li>
 </ul>
 <p>​        在1.21版本的k8s集群中，在node节点能够ping通service的ClusterIP，但是在1.27版本的k8s集群中，在node节点无法ping通service的ClusterIP。</p>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225740880.png" alt="image-20240302225740880"></p>
+<p><img src="/container.github.io/images/image-20240302225740880.png" alt="image-20240302225740880"></p>
+<p><img src="/container.github.io/images/image-20240302225842963.png" alt="image-20240302225842963"></p>
+<p><img src="/container.github.io/image-20240302225740880-1.png" alt="alt text"></p>
 <p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240302225842963.png" alt="image-20240302225842963"></p>
 <ul>
 <li><p>观察：</p>
@@ -201,24 +209,24 @@
 <li>原因：在k8s中，如果kube-proxy使用的是iptables，service会出现ping不同ClusterIP。在ipvs的模式下，是能够ping通ClusterIP。</li>
 <li>验证结果：在两台虚拟机中，同时验证是否开启了ipvs，以及kube-proxy的模式是什么。发现，两台虚拟机都开启了ipvs，并且都是ipvs的模式。</li>
 </ul>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151256063.png" alt="image-20240303151256063"></p>
+<p><img src="/container.github.io/images/image-20240303151256063.png" alt="image-20240303151256063"></p>
 <p>​																configmap for kube-proxy</p>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303151423352.png" alt="image-20240303151423352"></p>
+<p><img src="/container.github.io/images/image-20240303151423352.png" alt="image-20240303151423352"></p>
 <p>​																						ipvs</p>
 <ul>
 <li>分析：会不会是service转发到Pod的ip:port出现问题呢？</li>
 <li>过程：首先使用ipvsadm -L -n，查看ipvs是否能够负载均衡到pod的ip:port。继续查看pod的ip:port是否正常。</li>
 <li>结果：ipvs存在对应的规则，以及pod是正常的，能够ping通的。</li>
 </ul>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153531730.png" alt="image-20240303153531730"></p>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303153614230.png" alt="image-20240303153614230"></p>
+<p><img src="/container.github.io/images/image-20240303153531730.png" alt="image-20240303153531730"></p>
+<p><img src="/container.github.io/images/image-20240303153614230.png" alt="image-20240303153614230"></p>
 <ul>
 <li>分析：以上情况说明，只能是service本身问题，或者从主机发送的icmp报文被拦截了。service本身只是一个虚拟ip，绑定在kube-ipvs0网卡中，当请求这个service的ClusterIP时，能够直接到达input链进行处理。所以service不太可能出现什么问题。那么，问题大概率是在ping命令发送的报文被拦截了。</li>
 <li>过程：使用iptables -L -n -t命令查看kube-proxy和ipvs生成的链，查看包在经过内核处理的时候做了什么。</li>
 <li>结果：kube-proxy创建了KUBE-IPVS-FILTER链拒绝了所有KUBE-IPVS-IPS中的IP。而KUBE-IPVS-IPS中的IP保存了所有service的ClusterIP。而在1.21版本的k8s中，并没有该KUBE-IPVS-FILTER链。</li>
 </ul>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155719695.png" alt="image-20240303155719695"></p>
-<p><img src="C:\Users\16086\AppData\Roaming\Typora\typora-user-images\image-20240303155830139.png" alt="image-20240303155830139"></p>
+<p><img src="/container.github.io/images/image-20240303155719695.png" alt="image-20240303155719695"></p>
+<p><img src="/container.github.io/images/image-20240303155830139.png" alt="image-20240303155830139"></p>
 <p>​																															k8s-1.27</p>
 </li>
 <li><p>结论：</p>
