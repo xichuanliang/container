@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/container.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/container.github.io/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/container.github.io/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/container.github.io/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/container.github.io/css/main.css">
+
+
+<link rel="stylesheet" href="/container.github.io/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本文讲述的是k8s中的service的路由，主要是流量从pod-&gt;service-&gt;pod。cni使用的是calico，kubeporxy的模式为ipvs，协议为IPIP。其中pod的网段为100.64.0.0&#x2F;10，service的网段为10.96.0.0&#x2F;22。  pod-&gt;host  每一个pod在创建前，会首先创建一个对应的pause进程，pause进">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pod-service-pod路由">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/03/23/pod-service-pod%E8%B7%AF%E7%94%B1/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文讲述的是k8s中的service的路由，主要是流量从pod-&gt;service-&gt;pod。cni使用的是calico，kubeporxy的模式为ipvs，协议为IPIP。其中pod的网段为100.64.0.0&#x2F;10，service的网段为10.96.0.0&#x2F;22。  pod-&gt;host  每一个pod在创建前，会首先创建一个对应的pause进程，pause进">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/post-host.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/pod-host-ping.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/netfilter.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/host-host.png">
+<meta property="article:published_time" content="2024-03-23T07:52:03.000Z">
+<meta property="article:modified_time" content="2024-03-23T07:55:10.400Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://xichuanliang.github.io/container.github.io/images/post-host.png">
+
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/03/23/pod-service-pod%E8%B7%AF%E7%94%B1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>pod-service-pod路由 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/container.github.io/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/container.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/container.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/03/23/pod-service-pod%E8%B7%AF%E7%94%B1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          pod-service-pod路由
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-03-23 15:52:03 / 修改时间：15:55:10" itemprop="dateCreated datePublished" datetime="2024-03-23T15:52:03+08:00">2024-03-23</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文讲述的是k8s中的service的路由，主要是流量从pod-&gt;service-&gt;pod。cni使用的是calico，kubeporxy的模式为ipvs，协议为IPIP。其中pod的网段为100.64.0.0&#x2F;10，service的网段为10.96.0.0&#x2F;22。</p>
+<ul>
+<li><p>pod-&gt;host</p>
+<ul>
+<li>每一个pod在创建前，会首先创建一个对应的pause进程，pause进程的作用是使得其他容器在加入pod时，能够共用一个network namespace，从而在同一个pod中container之间能够直接通信。</li>
+<li>在创建pause的network namespace时，会初始化网络协议栈，路由表等等，使得pause的network namespace能够独立，像一台独立的虚拟机或者物理机一样。此时会初始化一个lo网卡。</li>
+<li>cni插件会初始化对应的veth网卡，host中的veth另一端相连，从而进行通信。</li>
+<li>当使用veth类型的网卡发送数据包时，host的network namespace中的对端veth会接收到这个数据包，同时，将这个数据包发送到网络协议栈（network protocol stack）进行处理。</li>
+</ul>
+<p><img src="/container.github.io/images/post-host.png"></p>
+<ul>
+<li>在pod中ping host的ip：<ul>
+<li>由于ping命令只经过网络层、数据链路层。</li>
+<li>容器经过pause的network namesapce对icmp报文添加ip头。ip头需要源ip地址和目的ip地址。这是显而易见的，不知道目的ip，ping命令都发不出去。</li>
+<li>报文到达数据链路层，此时需要host主机中对端网卡的mac地址。</li>
+<li>由于是第一次网络沟通，同时在初始化pause network namespace时，只存在非直连路由，即非本机ip的数据包，通通发往默认网关，同时将数据包中的mac地址更换为网关的mac地址进行发送。但是由于初始化的network namespace时的网关ip地址是不存在的，所以该网关其实是没有mac地址的。但是，还是会使用arp协议像所有网卡发送请求报文，以获得网关ip的mac地址。那他妈的怎么办？</li>
+<li>其实网关的mac地址不重要，重要的是包如何获取对端veth网卡的mac地址。</li>
+<li>那么重要的就是如果捕获这个arp请求报文，从而将对端veth的mac地址，封装到arp响应报文中？</li>
+<li>答案是：proxy-arp。proxy arp技术能用特定网络上的代理设备来相应对本网络不存在的ip地址的arp查询。这个代码知道流量的目标，以自己的mac地址进行相应。在主机的&#x2F;proc&#x2F;sys&#x2F;net&#x2F;ipv4&#x2F;conf&#x2F;cali123&#x2F;proxy_arp中可以看到。</li>
+<li>当Pod内的网络协议栈收到arp相应报文，获得对端veth的mac地址，就能顺利发送报文，从而进行通信。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><img src="/container.github.io/images/pod-host-ping.png"></p>
+<ul>
+<li><p>当包到达host的协议栈之后，该怎么走呢？（本文使用的cni为calico，kubeporxy的模式为ipvs，协议为IPIP）</p>
+<ul>
+<li><p>当数据包到达协议栈之后，首先去掉mac头。从而包到达ip层。</p>
+</li>
+<li><p>此时就他妈的关键了。这时候就涉及到iptables&#x2F;ipvs的规则。</p>
+</li>
+<li><p>无论是iptables还是ipvs都用到了Netfilter的规则。</p>
+</li>
+<li><p>netfilter</p>
+<ul>
+<li>当包进入network protocl stack时，就会去掉各种头，根据头的信息进行各种判断。</li>
+<li>当包去掉mac头后，进入ip层。在ip层有iptables的策略或者ipvs的策略来决定包的走向。</li>
+<li>入包：PREROUTING-&gt;IP IS LOCAL？-&gt;INPUT。出包：OUTPUT-&gt;POSTROUTING。转发：PREROUTING-&gt;FORWARD-&gt;POSTROUTING。</li>
+<li>当包首次到达时，会先进入PREROUTING链中。</li>
+<li>访问service的ip时，根据规则（任务协议、任务源ip、任何目的ip）会命中KUBE-SERVICES链。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Chain PREROUTING (policy ACCEPT)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">cali-PREROUTING  all  --  anywhere             anywhere             /* cali:6gwbT8clXdHdC1b1 */</span><br><span class="line">KUBE-SERVICES  all  --  anywhere             anywhere             /* kubernetes service portals */</span><br><span class="line">DOCKER     all  --  anywhere             anywhere             ADDRTYPE match dst-type LOCAL</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>进入KUBE-SERVECE链中，根据规则（任何协议，所有非100.64.0.0&#x2F;10的源ip地址，任意目的ip，能够匹配到KUBE-CLUSTER-IP集合的源ip地址）命中KUBE-MARK-MASQ链表。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Chain KUBE-SERVICES (2 references)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">RETURN     all  --  loopback/8           anywhere</span><br><span class="line">KUBE-MARK-MASQ  all  -- !100.64.0.0/10        anywhere             /* Kubernetes service cluster ip + port for masquerade purpose */ match-set KUBE-CLUSTER-IP dst,dst</span><br><span class="line">KUBE-NODE-PORT  all  --  anywhere             anywhere             ADDRTYPE match dst-type LOCAL</span><br><span class="line">ACCEPT     all  --  anywhere             anywhere             match-set KUBE-CLUSTER-IP dst,dst</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>KUBE-CLUSTER-IP集合中的所有ip是所有service的Ip。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">Name: KUBE-CLUSTER-IP</span><br><span class="line">Type: hash:ip,port</span><br><span class="line">Revision: 5</span><br><span class="line">Header: family inet hashsize 1024 maxelem 65536</span><br><span class="line">Size in memory: 568</span><br><span class="line">References: 3</span><br><span class="line">Number of entries: 7</span><br><span class="line">Members:</span><br><span class="line">10.96.3.214,tcp:80</span><br><span class="line">10.96.1.195,tcp:443</span><br><span class="line">10.96.0.10,tcp:9153</span><br><span class="line">10.96.0.10,udp:53</span><br><span class="line">10.96.1.125,tcp:5473</span><br><span class="line">10.96.0.10,tcp:53</span><br><span class="line">10.96.0.1,tcp:443</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>进入KUBE-MARK-MASQ中，对命中规则的包加上标记MARK or 0x4000</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Chain KUBE-MARK-MASQ (3 references)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">MARK       all  --  anywhere             anywhere             MARK or 0x4000</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>随后会判断目的ip是不是在本机中，开启ipvs模式时，cni会在host network namespace中创建kube-ipvs0网卡设备，并绑定所有service的cluster ip，这时候就会判断该ip时通往本机的了。随后进入input链。</li>
+<li>ipput链，input链啥都没，进入input链的原因主要是ipvs的函数在input链的hook中。此时才能进行ipvs的相关操作。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Chain INPUT (policy ACCEPT)</span><br><span class="line">target     prot opt source               destination</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>ipvs的模式有三种（NAT、TUN、DR），但是只有NAT模式下的ipvs能够进行端口的转换，所以在k8s中ipvs使用的是NAT模式，即将service的cluster ip转换为 pod的ip。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">IP Virtual Server version 1.2.1 (size=4096)</span><br><span class="line">Prot LocalAddress:Port Scheduler Flags</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">RemoteAddress:Port           Forward Weight ActiveConn InActConn</span></span><br><span class="line">TCP  172.17.0.1:32196 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.99.238.82:80             Masq    1      0          0</span></span><br><span class="line">TCP  192.168.118.3:32196 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.99.238.82:80             Masq    1      0          0</span></span><br><span class="line">TCP  10.96.0.1:443 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">192.168.118.3:6443           Masq    1      7          0</span></span><br><span class="line">TCP  10.96.0.10:53 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.145:53            Masq    1      0          0</span></span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.148:53            Masq    1      0          0</span></span><br><span class="line">TCP  10.96.0.10:9153 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.145:9153          Masq    1      0          0</span></span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.148:9153          Masq    1      0          0</span></span><br><span class="line">TCP  10.96.1.125:5473 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">192.168.118.3:5473           Masq    1      0          0</span></span><br><span class="line">TCP  10.96.1.195:443 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.144:5443          Masq    1      0          0</span></span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.149:5443          Masq    1      0          0</span></span><br><span class="line">TCP  10.96.3.214:80 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.99.238.82:80             Masq    1      0          0</span></span><br><span class="line">TCP  100.89.161.128:32196 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.99.238.82:80             Masq    1      0          0</span></span><br><span class="line">UDP  10.96.0.10:53 rr</span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.145:53            Masq    1      0          14</span></span><br><span class="line"><span class="meta prompt_">  -&gt; </span><span class="language-bash">100.89.161.148:53            Masq    1      0          15</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>进入POSTROUTING链，根据规则进入KUBE-POSTROUTING链后，由于在KUBE-MARK-MASQ中打过0x4000的标记，所以进入MASQUERADE链中做SNAT转换，将源ip地址转换为host的IP地址。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Chain POSTROUTING (policy ACCEPT)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">cali-POSTROUTING  all  --  anywhere             anywhere             /* cali:O3lYWMrLQYEMJtB5 */</span><br><span class="line">KUBE-POSTROUTING  all  --  anywhere             anywhere             /* kubernetes postrouting rules */</span><br><span class="line">MASQUERADE  all  --  172.17.0.0/16        anywhere</span><br><span class="line"></span><br><span class="line">Chain KUBE-POSTROUTING (1 references)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">MASQUERADE  all  --  anywhere             anywhere             /* Kubernetes endpoints dst ip:port, source ip for solving hairpin purpose */ match-set KUBE-LOOP-BACK dst,dst,src</span><br><span class="line">RETURN     all  --  anywhere             anywhere             mark match ! 0x4000/0x4000</span><br><span class="line">MARK       all  --  anywhere             anywhere             MARK xor 0x4000</span><br><span class="line">MASQUERADE  all  --  anywhere             anywhere             /* kubernetes service traffic requiring SNAT */</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<p><img src="/container.github.io/images/netfilter.png"></p>
+<ul>
+<li><p>此时分两种情况</p>
+</li>
+<li><p>pod在host中，根据路由直接经过calico的网卡转发进host的pod内的network protocal stack中。</p>
+</li>
+<li><p>pod在另一台主机中，根据ipip协议进行操作。</p>
+<ul>
+<li>根据路由将包发往tunl0。</li>
+<li>tunl0将源ip层的包，再封装一层host的ip头。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">default via 192.168.118.2 dev ens33 proto static metric 100</span><br><span class="line">blackhole 100.89.161.128/26 proto bird</span><br><span class="line">100.89.161.144 dev calie390562cd7a scope link</span><br><span class="line">100.89.161.145 dev calid2a2bf1daa5 scope link</span><br><span class="line">100.89.161.146 dev calib4038b4b4dd scope link</span><br><span class="line">100.89.161.148 dev cali05df44af143 scope link</span><br><span class="line">100.89.161.149 dev cali46d30cc017e scope link</span><br><span class="line">100.89.161.150 dev calie3d7af4efc7 scope link</span><br><span class="line">100.99.238.64/26 via 192.168.118.4 dev tunl0 proto bird onlink</span><br><span class="line">172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1</span><br><span class="line">192.168.118.0/24 dev ens33 proto kernel scope link src 192.168.118.3 metric 100</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p><img src="/container.github.io/images/host-host.png"></p>
+<ul>
+<li>总结：<ul>
+<li>数据包通过pod network namespace进行封装，在传输层封装端口号，在ip层封装ip地址（service的ClusterIp），在数据链路层封装首次封装的是对端veth的mac地址，从而将包发往对端网卡中。从而进入host的network protocal stack中。</li>
+<li>首次进入PREROUTING链中，经过一系列的链式规则，最终将匹配KUBE-CLUSTER-IP的包打上标记。</li>
+<li>由于host的network namespace中被cni插件创建了网络设备Kube-ipvs0，并且将该网络设备绑定了所有的service的ClusterIp，所以经过PREROUTING链后进入INPUT链。</li>
+<li>在INPUT链中触发ipvs规则，进行DNAT，将service的ClusterIp映射到Pod的IP。此时源IP为Pod的IP，而目的IP变为经过ipvs转换过后的service的映射pod的IP。</li>
+<li>进入POSTROUTING链后，到达MASQUERADE链中进行SNAT处理，将pod的源IP转换为host的IP。</li>
+<li>数据包经过路由表进行下一跳路由选择。</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/container.github.io/2024/03/03/ping-service/" rel="prev" title="ping service?">
+      <i class="fa fa-chevron-left"></i> ping service?
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/container.github.io/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/container.github.io/lib/anime.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/container.github.io/js/utils.js"></script>
+
+<script src="/container.github.io/js/motion.js"></script>
+
+
+<script src="/container.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="/container.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
