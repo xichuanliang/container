@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/container.github.io/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/container.github.io/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/container.github.io/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/container.github.io/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/container.github.io/css/main.css">
+
+
+<link rel="stylesheet" href="/container.github.io/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="docker镜像的存储 docker拉取镜像过程 ![](&#x2F;images&#x2F;pull image.png)  登录镜registry，使用~&#x2F;.docker&#x2F;config.json中的认证信息在registry中进行鉴权，从而拿到token。 向registry发出请求，获取manifest。  12345678910111213141516171819202">
+<meta property="og:type" content="article">
+<meta property="og:title" content="docker 镜像存储">
+<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/03/31/docker-%E9%95%9C%E5%83%8F%E5%AD%98%E5%82%A8/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="docker镜像的存储 docker拉取镜像过程 ![](&#x2F;images&#x2F;pull image.png)  登录镜registry，使用~&#x2F;.docker&#x2F;config.json中的认证信息在registry中进行鉴权，从而拿到token。 向registry发出请求，获取manifest。  12345678910111213141516171819202">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/image.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/container.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/registry.png">
+<meta property="article:published_time" content="2024-03-31T07:16:48.000Z">
+<meta property="article:modified_time" content="2024-03-31T07:20:40.453Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://xichuanliang.github.io/container.github.io/images/image.png">
+
+<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/03/31/docker-%E9%95%9C%E5%83%8F%E5%AD%98%E5%82%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>docker 镜像存储 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/container.github.io/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/container.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/container.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/03/31/docker-%E9%95%9C%E5%83%8F%E5%AD%98%E5%82%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          docker 镜像存储
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-03-31 15:16:48 / 修改时间：15:20:40" itemprop="dateCreated datePublished" datetime="2024-03-31T15:16:48+08:00">2024-03-31</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="docker镜像的存储"><a href="#docker镜像的存储" class="headerlink" title="docker镜像的存储"></a>docker镜像的存储</h3><ul>
+<li><p>docker拉取镜像过程</p>
+<p>![](&#x2F;images&#x2F;pull image.png)</p>
+<ul>
+<li>登录镜registry，使用~&#x2F;.docker&#x2F;config.json中的认证信息在registry中进行鉴权，从而拿到token。</li>
+<li>向registry发出请求，获取manifest。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">curl -H <span class="string">&quot;Accept:application/vnd.docker.distribution.manifest.v2+json&quot;</span> http:<span class="comment">//192.168.118.3:5000/v2/nginx/manifests/latest</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="string">&quot;schemaVersion&quot;</span>: <span class="number">2</span>,</span><br><span class="line">   <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.distribution.manifest.v2+json&quot;</span>,</span><br><span class="line">   <span class="string">&quot;config&quot;</span>: &#123;</span><br><span class="line">      <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.container.image.v1+json&quot;</span>,</span><br><span class="line">      <span class="string">&quot;size&quot;</span>: <span class="number">7656</span>,</span><br><span class="line">      <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:605c77e624ddb75e6110f997c58876baa13f8754486b461117934b24a9dc3a85&quot;</span></span><br><span class="line">   &#125;,</span><br><span class="line">   <span class="string">&quot;layers&quot;</span>: [</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">31357624</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:a2abf6c4d29d43a4bf9fbb769f524d0fb36a2edab49819c1bf3e76f409f953ea&quot;</span></span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">25350007</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:a9edb18cadd1336142d6567ebee31be2a03c0905eeefe26cb150de7b0fbc520b&quot;</span></span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">602</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:589b7251471a3d5fe4daccdddfefa02bdc32ffcba0a6d6a2768bf2c401faf115&quot;</span></span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">894</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:186b1aaa4aa6c480e92fbd982ee7c08037ef85114fbed73dbb62503f24c1dd7d&quot;</span></span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">666</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:b4df32aa5a72e2a4316aad3414508ccd907d87b4ad177abd7cbd62fa4dab2a2f&quot;</span></span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         <span class="string">&quot;mediaType&quot;</span>: <span class="string">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,</span><br><span class="line">         <span class="string">&quot;size&quot;</span>: <span class="number">1395</span>,</span><br><span class="line">         <span class="string">&quot;digest&quot;</span>: <span class="string">&quot;sha256:a0bcbecc962ed2552e817f45127ffb3d14be31642ef3548997f58ae054deb5b2&quot;</span></span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>读取manifest中image config的digest，这个sha256值就是image ID，根据ID在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;repositories.json中查看是否存在相同ID的image，如果有就不用从新下载。每一个镜像对应两个值，image ID（605c77e624ddb75e6110f997c58876baa13f8754486b461117934b24a9dc3a85）和digest（ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3）。image ID是manifest中的image config的digest值，digest是将manifest文件使用sha256计算得出的。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="string">&quot;Repositories&quot;</span>: &#123;</span><br><span class="line">        <span class="string">&quot;192.168.118.3:5000/nginx&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;192.168.118.3:5000/nginx:latest&quot;</span>: <span class="string">&quot;sha256:605c77e624ddb75e6110f997c58876baa13f8754486b461117934b24a9dc3a85&quot;</span>,</span><br><span class="line">        <span class="string">&quot;192.168.118.3:5000/nginx@sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3&quot;</span>: <span class="string">&quot;sha256:605c77e624ddb75e6110f997c58876baa13f8754486b461117934b24a9dc3a85&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;registry&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;registry:latest&quot;</span>: <span class="string">&quot;sha256:b8604a3fe8543c9e6afc29550de05b36cd162a97aa9b2833864ea8a5be11f3e2&quot;</span>,</span><br><span class="line">     <span class="string">&quot;registry@sha256:169211e20e2f2d5d115674681eb79d21a217b296b43374b8e39f97fcf866b375&quot;</span>: <span class="string">&quot;sha256:b8604a3fe8543c9e6afc29550de05b36cd162a97aa9b2833864ea8a5be11f3e2&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>如果没有，向registry发出拿到image config的请求。从而获取image config文件。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">curl -H <span class="string">&quot;Accept:application/vnd.docker.distribution.manifest.v2+json&quot;</span> http:<span class="comment">//192.168.118.3:5000/v2/nginx/blobs/sha256:605c77e624ddb75e6110f997c58876baa13f8754486b461117934b24a9dc3a85</span></span><br><span class="line">&#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="string">&quot;rootfs&quot;</span>: &#123;</span><br><span class="line">        <span class="string">&quot;diff_ids&quot;</span>: [</span><br><span class="line">            <span class="string">&quot;sha256:2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f&quot;</span>,</span><br><span class="line">            <span class="string">&quot;sha256:e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7a61bc80179e8f02421ad8&quot;</span>,</span><br><span class="line">            <span class="string">&quot;sha256:b8d6e692a25e11b0d32c5c3dd544b71b1085ddc1fddad08e68cbd7fda7f70221&quot;</span>,</span><br><span class="line">            <span class="string">&quot;sha256:f1db227348d0a5e0b99b15a096d930d1a69db7474a1847acbc31f05e4ef8df8c&quot;</span>,</span><br><span class="line">            <span class="string">&quot;sha256:32ce5f6a5106cc637d09a98289782edf47c32cb082dc475dd47cbf19a4f866da&quot;</span>,</span><br><span class="line">            <span class="string">&quot;sha256:d874fd2bc83bb3322b566df739681fbd2248c58d3369cb25908d68e7ed6040a6&quot;</span></span><br><span class="line">        ],</span><br><span class="line">        <span class="string">&quot;type&quot;</span>: <span class="string">&quot;layers&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>加入diff_ids根据一些列的算法匹配之后，发现一个镜像层都没有，则根据diff_ids中的sha256中的值取拉去对应的层。将拉下来的层进行gzip解压成xxx.tar包，并通过sha256sum计算是否和image config中的diff_id相同，如果不相同，拉去失败。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">a2abf6c4d29d: Pull complete</span><br><span class="line">a9edb18cadd1: Pull complete</span><br><span class="line"><span class="number">589</span>b7251471a: Pull complete</span><br><span class="line"><span class="number">186</span>b1aaa4aa6: Pull complete</span><br><span class="line">b4df32aa5a72: Pull complete</span><br><span class="line">a0bcbecc962e: Pull complete</span><br><span class="line">Digest: sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3</span><br><span class="line">Status: Downloaded newer image <span class="keyword">for</span> <span class="number">192.168</span><span class="number">.118</span><span class="number">.3</span>:<span class="number">5000</span>/nginx:latest</span><br></pre></td></tr></table></figure>
+
+<p>​		根据diff_ids中的sha256的值（diff id），拉取下来的压缩包进行sha256sum后，得到的值，发现与</p>
+<p>​		docker pull拉取镜像时的值保持一致。同时，将xxx.tar.gz解压之后成xxx.tar之后，通过sha256sum算</p>
+<p>​		法得出的值（digest）在本地存储的值保持一致。此时就产生了一种对应关系，diff_id与digest的对应关</p>
+<p>​		系。diff_id是layer解压之后的sha256值，digest是layer未解压时的sha256的值。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">curl -H <span class="string">&quot;Accept:application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span> http:<span class="comment">//192.168.118.3:5000/v2/nginx/blobs/sha256:a2abf6c4d29d43a4bf9fbb769f524d0fb36a2edab49819c1bf3e76f409f953ea -o layer1.tar.gz</span></span><br><span class="line"></span><br><span class="line">sha256sum layer1.tar.gz</span><br><span class="line">a2abf6c4d29d43a4bf9fbb769f524d0fb36a2edab49819c1bf3e76f409f953ea  layer1.tar.gz</span><br><span class="line"></span><br><span class="line">gzip -d layer1.tar.gz</span><br><span class="line">sha256sum layer1.tar</span><br><span class="line"><span class="number">2</span>edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f  layer1.tar</span><br></pre></td></tr></table></figure>
+
+<p>​		这种对应关系存储在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;distribution&#x2F;文件中。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">├── diffid-by-digest（通过digest得到diffid）</span><br><span class="line">│   └── sha256</span><br><span class="line">│       ├── <span class="number">0</span>d96da54f60b86a4d869d44b44cfca69d71c4776b81d361bc057d6666ec0d878</span><br><span class="line">│       ├── <span class="number">186</span>b1aaa4aa6c480e92fbd982ee7c08037ef85114fbed73dbb62503f24c1dd7d</span><br><span class="line">│       ├── <span class="number">3790</span>aef225b922bc97aaba099fe762f7b115aec55a0083824b548a6a1e610719</span><br><span class="line">│       ├── <span class="number">41</span>af1b5f0f51947706ae712999cf098bef968a7799e7cb4bb2268829e62a6ab3</span><br><span class="line">│       ├── <span class="number">589</span>b7251471a3d5fe4daccdddfefa02bdc32ffcba0a6d6a2768bf2c401faf115</span><br><span class="line">│       ├── <span class="number">5</span>b27040df4a23c90c3837d926f633fb327fb3af9ac4fa5d5bc3520ad578acb10</span><br><span class="line">│       ├── <span class="number">79e9</span>f2f55bf5465a02ee6a6170e66005b20c7aa6b115af6fcd04fad706ea651a</span><br><span class="line">│       ├── <span class="number">7</span>c457f213c7634afb95a0fb2410a74b7b5bc0ba527033362c240c7a11bef4331</span><br><span class="line">│       ├── a0bcbecc962ed2552e817f45127ffb3d14be31642ef3548997f58ae054deb5b2</span><br><span class="line">│       ├── a2abf6c4d29d43a4bf9fbb769f524d0fb36a2edab49819c1bf3e76f409f953ea</span><br><span class="line">│       ├── a9edb18cadd1336142d6567ebee31be2a03c0905eeefe26cb150de7b0fbc520b</span><br><span class="line">│       ├── b4df32aa5a72e2a4316aad3414508ccd907d87b4ad177abd7cbd62fa4dab2a2f</span><br><span class="line">│       └── e2ead8259a04d39492c25c9548078200c5ec429f628dcf7b7535137954cc2df0</span><br><span class="line">└── v2metadata-by-diffid（通过diffid获得digest）</span><br><span class="line">    └── sha2565</span><br><span class="line">        ├── <span class="number">2</span>edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f</span><br><span class="line">        ├── <span class="number">32</span>ce5f6a5106cc637d09a98289782edf47c32cb082dc475dd47cbf19a4f866da</span><br><span class="line">        ├── <span class="number">548</span>a79621a426b4eb077c926eabac5a8620c454fb230640253e1b44dc7dd7562</span><br><span class="line">        ├── <span class="number">69715584</span>ec78c168981b0925dd7c50f4537bc598dcbce814db2803a10b777b5c</span><br><span class="line">        ├── aa4330046b37f18b2c8266a11687acfcb1912b3312ab6ee427668d9842672d69</span><br><span class="line">        ├── ad10b481abe790a76415269ad68a67e6baeded9586f1aa4d32b22bf60a74e492</span><br><span class="line">        ├── aeccf26589a7bdcad5bbde6d93db4ba6f26dd1fffcae9236e838f8546c2adb9b</span><br><span class="line">        ├── b8d6e692a25e11b0d32c5c3dd544b71b1085ddc1fddad08e68cbd7fda7f70221</span><br><span class="line">        ├── d874fd2bc83bb3322b566df739681fbd2248c58d3369cb25908d68e7ed6040a6</span><br><span class="line">        ├── e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7a61bc80179e8f02421ad8</span><br><span class="line">        ├── f1db227348d0a5e0b99b15a096d930d1a69db7474a1847acbc31f05e4ef8df8c</span><br><span class="line">        └── f640be0d5aadac5d1376a1ad029edc6caff948d68373888e3007f1422f912fbe</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>最终将xxx.tar包解压成下载完成的layer文件。由此可见，镜像是文件的叠加，最终生成rootfs。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">tar -xvf layer1.tar</span><br><span class="line">rwxr-xr-x   <span class="number">2</span> root root      <span class="number">4096</span> Dec <span class="number">20</span>  <span class="number">2021</span> bin</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">12</span>  <span class="number">2021</span> boot</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> dev</span><br><span class="line">drwxr-xr-x  <span class="number">30</span> root root      <span class="number">4096</span> Dec <span class="number">20</span>  <span class="number">2021</span> etc</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">12</span>  <span class="number">2021</span> homer</span><br><span class="line">drwxr-xr-x   <span class="number">8</span> root root        <span class="number">96</span> Dec <span class="number">20</span>  <span class="number">2021</span> lib</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root        <span class="number">34</span> Dec <span class="number">20</span>  <span class="number">2021</span> lib64</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> media</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> mnt</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> opt</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">12</span>  <span class="number">2021</span> proc</span><br><span class="line">drwx------   <span class="number">2</span> root root        <span class="number">37</span> Dec <span class="number">20</span>  <span class="number">2021</span> root</span><br><span class="line">drwxr-xr-x   <span class="number">3</span> root root        <span class="number">30</span> Dec <span class="number">20</span>  <span class="number">2021</span> run</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root      <span class="number">4096</span> Dec <span class="number">20</span>  <span class="number">2021</span> sbin</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> srv</span><br><span class="line">drwxr-xr-x   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">12</span>  <span class="number">2021</span> sys</span><br><span class="line">drwxrwxrwt   <span class="number">2</span> root root         <span class="number">6</span> Dec <span class="number">20</span>  <span class="number">2021</span> tmp</span><br><span class="line">drwxr-xr-x  <span class="number">11</span> root root       <span class="number">120</span> Dec <span class="number">20</span>  <span class="number">2021</span> usr</span><br><span class="line">drwxr-xr-x  <span class="number">11</span> root root       <span class="number">139</span> Dec <span class="number">20</span>  <span class="number">2021</span> <span class="keyword">var</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>那么最终这些xxx.tar包会怎么解压到哪里呢，总不可能随便解压一下。</li>
+</ul>
+</li>
+<li><p>镜像在本地存储</p>
+</li>
+</ul>
+<p><img src="/container.github.io/images/image.png"></p>
+<p>​       在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;layerdb中记录layer的存储信息，但并不真正的存储layer。</p>
+<p>​        在该文件中，发现有一个文件目录和rootfs中的最底层的diff_id  </p>
+<p>​      （2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f）一致，且仅一个。</p>
+<p>​        查阅资料可知，在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;layerdb&#x2F;sha256中的每一个文件夹与diff_id保持一致，在</p>
+<p>​       此处该id成为chainid。不过对应关系为：除最底层的diff_id与chainid保持一致外，其余层均依赖于下一层的</p>
+<p>​        chainid。chainid用来连接镜像中的各个层</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── mounts</span><br><span class="line">│   └── <span class="number">9610566</span>a284373f2da4e0c596b8360e4e5854d3aa697798aac43ac081036f311</span><br><span class="line">├── sha256</span><br><span class="line">│   ├── <span class="number">02</span>b80ac2055edd757a996c3d554e6a8906fd3521e14d1227440afd5163a5f1c4</span><br><span class="line">│   ├── <span class="number">2</span>edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f</span><br><span class="line">│   ├── <span class="number">780238</span>f18c540007376dd5e904f583896a69fe620876cabc06977a3af4ba4fb5</span><br><span class="line">│   ├── <span class="number">7850</span>d382fb05e393e211067c5ca0aada2111fcbe550a90fed04d1c634bd31a14</span><br><span class="line">│   ├── b625d8e29573fa369e799ca7c5df8b7a902126d2b7cbeb390af59e4b9e1210c5</span><br><span class="line">│   ├── b92aa5824592ecb46e6d169f8e694a99150ccef01a2aabea7b9c02356cdabe7c</span><br><span class="line">└── tmp</span><br></pre></td></tr></table></figure>
+
+<p>​		计算关系：本层chainid &#x3D; “下一层的chainID”+”本层的diff_id” | sha256sum</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">echo -n <span class="string">&quot;sha256:2edcec3590a4ec7f40cf0743c15d78fb39d8326bc029073b41ef9727da6c851f sha256:e379e8aedd4d72bb4c529a4ca07a4e4d230b5a1d3f7a61bc80179e8f02421ad8&quot;</span> | sha256sum</span><br><span class="line"><span class="number">780238</span>f18c540007376dd5e904f583896a69fe620876cabc06977a3af4ba4fb5  -</span><br><span class="line"></span><br><span class="line">echo -n <span class="string">&quot;sha256:780238f18c540007376dd5e904f583896a69fe620876cabc06977a3af4ba4fb5 sha256:b8d6e692a25e11b0d32c5c3dd544b71b1085ddc1fddad08e68cbd7fda7f70221&quot;</span> | sha256sum</span><br><span class="line">b92aa5824592ecb46e6d169f8e694a99150ccef01a2aabea7b9c02356cdabe7c  -</span><br><span class="line"></span><br><span class="line">echo -n <span class="string">&quot;sha256:b92aa5824592ecb46e6d169f8e694a99150ccef01a2aabea7b9c02356cdabe7c sha256:f1db227348d0a5e0b99b15a096d930d1a69db7474a1847acbc31f05e4ef8df8c&quot;</span> | sha256sum</span><br><span class="line"><span class="number">02</span>b80ac2055edd757a996c3d554e6a8906fd3521e14d1227440afd5163a5f1c4  -</span><br><span class="line"></span><br><span class="line">echo -n <span class="string">&quot;sha256:02b80ac2055edd757a996c3d554e6a8906fd3521e14d1227440afd5163a5f1c4 sha256:32ce5f6a5106cc637d09a98289782edf47c32cb082dc475dd47cbf19a4f866da&quot;</span> | sha256sum</span><br><span class="line"><span class="number">7850</span>d382fb05e393e211067c5ca0aada2111fcbe550a90fed04d1c634bd31a14  -</span><br><span class="line"></span><br><span class="line">echo -n <span class="string">&quot;sha256:7850d382fb05e393e211067c5ca0aada2111fcbe550a90fed04d1c634bd31a14 sha256:d874fd2bc83bb3322b566df739681fbd2248c58d3369cb25908d68e7ed6040a6&quot;</span> | sha256sum</span><br><span class="line">b625d8e29573fa369e799ca7c5df8b7a902126d2b7cbeb390af59e4b9e1210c5  -</span><br></pre></td></tr></table></figure>
+
+<p>​		最终，计算出最终的chainid是</p>
+<p>​		b625d8e29573fa369e799ca7c5df8b7a902126d2b7cbeb390af59e4b9e1210c5，进入这个文件目录可</p>
+<p>​		知</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">├── cache-id 真正对应的layer数据的目录</span><br><span class="line">├── diff     该层的diffid</span><br><span class="line">├── parent   上一层的chainid</span><br><span class="line">├── size     该层的大小</span><br><span class="line">└── tar-split.json.gz tar-split.json.gz，layer压缩包的split文件，通过这个文件可以还原layer的tar包，https:<span class="comment">//github.com/vbatts/tar-split</span></span><br></pre></td></tr></table></figure>
+
+<p>​		获取cache-id中的值</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat cache-id</span><br><span class="line"><span class="number">3</span>f4cb9effac5ec0d172fd92f3cd932460a785bf1b938ed8bfa5913081664003a</span><br></pre></td></tr></table></figure>
+
+<p>​		在对应的文件查找diff层。里面就是layer中真正的内容。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cd /<span class="keyword">var</span>/lib/docker/overlay2/<span class="number">3</span>f4cb9effac5ec0d172fd92f3cd932460a785bf1b938ed8bfa5913081664003a</span><br><span class="line"></span><br><span class="line">cat lower</span><br><span class="line">l/<span class="number">5</span>COCTCQVW7JD7RE3WW62IWN3GV:l/M4YQYVZR2O2DCI6PNMWNVEGX3H:l/ZD6YRQ3T5ZXQKZXYP6MFCJD546:l/VE5FXRY5J4AEZDFLK6ILMFMU3E:l/PJT35YHDQWZPE3AEWI4BGHYSYC</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── <span class="number">0131057585</span>a4730358d8118159dba84e4343d2a99b20be8ec2935ac747774cde</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── <span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   ├── merged</span><br><span class="line">│   └── work</span><br><span class="line">├── <span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e-init</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── <span class="number">21147703e267</span>c0a9741afc92b6d84479b6d457636a2be5a84cb146ee4ee78640</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   └── link</span><br><span class="line">├── <span class="number">3</span>f4cb9effac5ec0d172fd92f3cd932460a785bf1b938ed8bfa5913081664003a</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── <span class="number">76383</span>a05cead72c5aa8045be7c6dcce847621d08ca12571ed191155e09ae1146</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── <span class="number">7</span>c01c7f54d97e5890f8e4dc66849d5b4fd00c70748d35b9fe81ccaf6c637be27</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   └── link</span><br><span class="line">├── b53dd778c39441181d987ee1be7f4b9fdcfa15d6eea47af0a4f31d8423925819</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── backingFsBlockDev</span><br><span class="line">├── c0e68f2807d39963736c5050d63a5b805dd2d7cde1be46867f9df123e7c15e12</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── c5e9060bd948b0a4bfdd86754723bc5200fde4bee34d0c25a66e2a5414d2f11e</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── c8389c704e9938c6b7d01425eaf98dc32074d2b5eddb82536fd6b49757427d1c</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── cb4ad7aecae9ecb47e6b68b1d58a1e71a386f33cfd51d14d61ed4e3a56fccb5b</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">├── e9b1b38b87553b7995f804f6de2cdccad1ce4e24921b7ea4e8a815fdeee8cf71</span><br><span class="line">│   ├── committed</span><br><span class="line">│   ├── diff</span><br><span class="line">│   ├── link</span><br><span class="line">│   ├── lower</span><br><span class="line">│   └── work</span><br><span class="line">└── l</span><br><span class="line">    ├── <span class="number">2</span>UJXL2KXNRPJH2MQTNOUISBQUN -&gt; ../<span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e/diff</span><br><span class="line">    ├── <span class="number">5</span>COCTCQVW7JD7RE3WW62IWN3GV -&gt; ../c8389c704e9938c6b7d01425eaf98dc32074d2b5eddb82536fd6b49757427d1c/diff</span><br><span class="line">    ├── ALXHZKACOJCUZ72DJ5G5DQOQCF -&gt; ../<span class="number">76383</span>a05cead72c5aa8045be7c6dcce847621d08ca12571ed191155e09ae1146/diff</span><br><span class="line">    ├── C4NZT2GBJVSMOZ4QBG3RUI4EUH -&gt; ../cb4ad7aecae9ecb47e6b68b1d58a1e71a386f33cfd51d14d61ed4e3a56fccb5b/diff</span><br><span class="line">    ├── EJ7VTNUSQVI4FCHGV7SPZAUVZ5 -&gt; ../<span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e-init/diff</span><br><span class="line">    ├── GL3YM5S5K63VTKYNUPOMCEPSFF -&gt; ../b53dd778c39441181d987ee1be7f4b9fdcfa15d6eea47af0a4f31d8423925819/diff</span><br><span class="line">    ├── GRN25DOYR7MLG5L6ROW444UWIW -&gt; ../<span class="number">0131057585</span>a4730358d8118159dba84e4343d2a99b20be8ec2935ac747774cde/diff</span><br><span class="line">    ├── M4YQYVZR2O2DCI6PNMWNVEGX3H -&gt; ../c5e9060bd948b0a4bfdd86754723bc5200fde4bee34d0c25a66e2a5414d2f11e/diff</span><br><span class="line">    ├── PJT35YHDQWZPE3AEWI4BGHYSYC -&gt; ../<span class="number">7</span>c01c7f54d97e5890f8e4dc66849d5b4fd00c70748d35b9fe81ccaf6c637be27/diff</span><br><span class="line">    ├── TBJFP5EWBIA6YHDRDUNAVUTPFA -&gt; ../<span class="number">3</span>f4cb9effac5ec0d172fd92f3cd932460a785bf1b938ed8bfa5913081664003a/diff</span><br><span class="line">    ├── VE5FXRY5J4AEZDFLK6ILMFMU3E -&gt; ../c0e68f2807d39963736c5050d63a5b805dd2d7cde1be46867f9df123e7c15e12/diff</span><br><span class="line">    ├── WD6DDEX6EHVPLTCDIU2MESMVSS -&gt; ../<span class="number">21147703e267</span>c0a9741afc92b6d84479b6d457636a2be5a84cb146ee4ee78640/diff</span><br><span class="line">    └── ZD6YRQ3T5ZXQKZXYP6MFCJD546 -&gt; ../e9b1b38b87553b7995f804f6de2cdccad1ce4e24921b7ea4e8a815fdeee8cf71/diff</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>镜像在容器中的使用</p>
+<p><img src="/container.github.io/images/container.png"></p>
+<p>运行一个镜像时，会在返回容器ID，并在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;layerdb&#x2F;mounts&#x2F;中产生相应文件，记录容器启动所用的镜像层信息、init层信息、r&#x2F;w层信息。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">/<span class="keyword">var</span>/lib/docker/image/overlay2/layerdb/mounts/<span class="number">9610566</span>a284373f2da4e0c596b8360e4e5854d3aa697798aac43ac081036f311</span><br><span class="line"></span><br><span class="line">├── init-id  init层的id</span><br><span class="line">│   ├── <span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e-init</span><br><span class="line">├── mount-id r/w层的id</span><br><span class="line">│   ├── <span class="number">1662</span>b3b65aae2285418da9fdad8abd6fcaad1290a7c608b6cfe3d01ecfe16f0e</span><br><span class="line">└── parent   镜像层的chainid，根据chainid获取各个镜像层。</span><br><span class="line">│   ├── sha256:fd39b5678fdb70fc98ac5e6b4e7383f1b74b7f1a08bc6dd74fadadcc4beaf364</span><br></pre></td></tr></table></figure>
+
+<p>根据parent的chainid获取镜像层。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cd /<span class="keyword">var</span>/lib/docker/image/overlay2/layerdb/sha256/fd39b5678fdb70fc98ac5e6b4e7383f1b74b7f1a08bc6dd74fadadcc4beaf364</span><br><span class="line"></span><br><span class="line">├── cache-id</span><br><span class="line">│   ├── b53dd778c39441181d987ee1be7f4b9fdcfa15d6eea47af0a4f31d8423925819</span><br><span class="line">├── diff</span><br><span class="line">├── parent</span><br><span class="line">├── size</span><br><span class="line">└── tar-split.json.gz</span><br></pre></td></tr></table></figure>
+
+<p>从cache-id中查找对应的layer，根据lower中的链接获取其中的diff文件，最终组成镜像层。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cd /<span class="keyword">var</span>/lib/docker/overlay2/b53dd778c39441181d987ee1be7f4b9fdcfa15d6eea47af0a4f31d8423925819</span><br><span class="line">├── committed</span><br><span class="line">├── diff</span><br><span class="line">│   └── entrypoint.sh</span><br><span class="line">├── link</span><br><span class="line">├── lower</span><br><span class="line">│   ├── b53dd778c39441181d987ee1be7f4b9fdcfa15d6eea47af0a4f31d8423925819l/</span><br><span class="line">C4NZT2GBJVSMOZ4QBG3RUI4EUH:l/GRN25DOYR7MLG5L6ROW444UWIW:l/ALXHZKACOJCUZ72DJ5G5DQOQCF:l/WD6DDEX6EHVPLTCDIU2MESMVSS</span><br><span class="line">└── work</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>镜像在registry的存储</p>
+<p><img src="/container.github.io/images/registry.png"></p>
+<ul>
+<li>registry在本地的挂载路径为&#x2F;usr&#x2F;local&#x2F;image_registry</li>
+<li>在registry中分为两大部分，一部分是blobs文件，另一部分是repositories文件。<ul>
+<li>blobs存储的是image manifest、image config、image layer（image的各个层）。当把相应image layer拉下来之后，使用docker-untar进程将data文件解压后的数据存放在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;overlay2&#x2F;${digest}&#x2F;diff中。</li>
+<li>repositories存储的是镜像的版本信息、历史信息等等。<ul>
+<li>_manifests文件是在镜像上传完成之后由registry生成的，并且该目录下的文件都是一个名为link的文本，link中的文本指向blobs中的 blob digest目录。__manifests文件下包含镜像的revision和tags信息，每一个镜像的每一个tag对应着tag名相同的目录。镜像的tag并不存储在image config中，而是以目录的形式形成镜像的tag。每一个tag文件下包含current和index目录，current中的link保存了该tag当前manifest的digests信息，index中列出了该tag历史上传的所有版本的sha256信息。revision目录中存放了该repository历史上传版本的所有sha256信息。</li>
+<li>_layers存放镜像的image config、image layers的sha256的信息。</li>
+<li>_uploads是个临时文件，主要用来存放push镜像过程中的文件数据，当镜像layer上传完成之后回清空该文件夹。其中data文件上传完毕后会转移到blobs目录下，根据该文件的sha256值散列存储到相应的目录下。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>总结</p>
+<ul>
+<li>镜像在registry中的存储<ul>
+<li>registry中有两个文件夹，blobs和repositories。</li>
+<li>blobs中存储image manifest、image config、image layers。即存储的是镜像的真正内容。</li>
+<li>repositories中存储的是镜像的版本信息，tag信息等等。通过文件的link指引blob文件中真正的内容。</li>
+</ul>
+</li>
+<li>拉取镜像<ul>
+<li>获取registry的认证信息</li>
+<li>发送url，url中包含了镜像名、tag。通过这个url去对应的repositories文件中查找对应的image manifest。将manifest返回回去。</li>
+<li>获取到manifest之后，根据manifest中的image config对应的sha256值，去&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;repositories.json中查找是否有相同的值，如果有就不用后续下载。如果没有就根据image config的sha256的值去registry中下载image config。</li>
+<li>获取image config后，查看diff_ids。根据diff_ids在本地找对应的layer是否存在。</li>
+<li>如果layer不存在，就根据diff_ids中的sha256值去registry中并行下载layer。</li>
+<li>下载之后，进行解压（gzip），判断解压后的xxx.tar包的sha256值与image config中的sha256值是否相同，相同下载成功。</li>
+<li>当所有的layer都下载完成之后，再将xxx.tar进行解压，解压到相应的&#x2F;var&#x2F;lib&#x2F;docker&#x2F;overlay2&#x2F;${digest}&#x2F;diff中。</li>
+</ul>
+</li>
+<li>推送镜像<ul>
+<li>获取registry的认证信息</li>
+<li>向registry中发送POST &#x2F;v2&#x2F;<name>&#x2F;blobs&#x2F;uploads&#x2F; 请求，检查registry中是否已经存在镜像的layer。</li>
+<li>客户端通过URL上传layer数据，上传镜像layer分为整块上传和分块上传。</li>
+<li>上传完成之后，docker向registry发送求情，告知layer已经上传完毕。</li>
+<li>上传完成之后，将manifest上传上去。</li>
+</ul>
+</li>
+<li>镜像在本地存储<ul>
+<li>在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;repositories.json中有对应的镜像名称和相应的值（image id、digest）。image ID是manifest中的image config的digest值，digest是将manifest文件使用sha256计算得出的。</li>
+<li>在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;distribution&#x2F;文件夹中有两个文件（diffid-by-digest、v2metadata-by-diffid），这两个文件中记录了diff_id和digest之间的对应关系。可根据diff_id和digest之间的关系，计算是否存在该layer以及是否下载的layer是否正确。</li>
+<li>在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;layerdb&#x2F;sha256中存放了chainid与layer之间的真正关系。通过最底层的diff_id与chainid相同，并且通过每一层的diff_id和上一层的chainid就能够计算出本层的chainid。进入对应的chaini目录中，查找对应的cache-id以获取layer真正的地方。</li>
+<li>根据chainid获取每层的cache-id之后，在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;overlay2中根据cache-id的值查找对应的diff文件，diff文件中的文件夹就是xxx.tar解压之后，也就是layer真实的值。</li>
+</ul>
+</li>
+<li>镜像在容器中<ul>
+<li>镜像存储在本地，转化为了filesystem bundle</li>
+<li>当启动容器时，生成一个容器ID，并在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;image&#x2F;overlay2&#x2F;layerdb&#x2F;mounts&#x2F;容器ID生成文件。</li>
+<li>在该文件中有三个文件，init-id、mount-id、parent。<ul>
+<li>init-id：容器的init层所在id</li>
+<li>mount-id：容器的r&#x2F;w层所在id。</li>
+<li>parent：容器的镜像层所在chainid。</li>
+</ul>
+</li>
+<li>init-id和mount-id的文件在&#x2F;var&#x2F;lib&#x2F;docker&#x2F;overlay2&#x2F;中</li>
+<li>parent中的镜像层，是通过chainid获取镜像的每层文件。</li>
+<li>最终使用overlayFS(联合挂载)技术，将lowerdir设置为image layer（parent）和init layer（init-id），将upperdir层设置为r&#x2F;w层（mount-id），workerdir设置为挂载之后的工作目录。最终联合挂载在merger目录中。</li>
+<li>联合挂载技术的特点：<ul>
+<li>上下合并时，上层文件覆盖下层同名文件。</li>
+<li>写时复制。删除的文件是upper的，并且这个文件在lower层不存在直接删除。删除的文件来自于lower层，upper层没有对应的文件，overlayFS通过whiteout机制，屏蔽文件，并不真正删除文件。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/container.github.io/2024/03/23/pod-service-pod%E8%B7%AF%E7%94%B1/" rel="prev" title="pod-service-pod路由">
+      <i class="fa fa-chevron-left"></i> pod-service-pod路由
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#docker%E9%95%9C%E5%83%8F%E7%9A%84%E5%AD%98%E5%82%A8"><span class="nav-number">1.</span> <span class="nav-text">docker镜像的存储</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/container.github.io/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/container.github.io/lib/anime.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.min.js"></script>
+  <script src="/container.github.io/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/container.github.io/js/utils.js"></script>
+
+<script src="/container.github.io/js/motion.js"></script>
+
+
+<script src="/container.github.io/js/schemes/pisces.js"></script>
+
+
+<script src="/container.github.io/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
