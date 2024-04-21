@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
 <meta name="generator" content="Hexo 7.0.0">
-  <link rel="apple-touch-icon" sizes="180x180" href="/container.github.io/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/container.github.io/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/container.github.io/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/container.github.io/images/logo.svg" color="#222">
+  <link rel="apple-touch-icon" sizes="180x180" href="/container/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/container/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/container/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/container/images/logo.svg" color="#222">
 
-<link rel="stylesheet" href="/container.github.io/css/main.css">
+<link rel="stylesheet" href="/container/css/main.css">
 
 
-<link rel="stylesheet" href="/container.github.io/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/container/lib/font-awesome/css/all.min.css">
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container.github.io/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"xichuanliang.github.io","root":"/container/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
   <meta name="description" content="kubeadm Init (五)创建kube-apiserver、kube-controller-manager、kube-scheduler的静态pod的yaml文件  创建工作流 该工作流中存在三个子工作流，分别用于创建apiserver、controller-manager、scheduler的静态pod文件    123456789101112131415161718192021func">
 <meta property="og:type" content="article">
 <meta property="og:title" content="kubeadmInit (五)">
-<meta property="og:url" content="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/index.html">
+<meta property="og:url" content="https://xichuanliang.github.io/container/2024/02/20/kubeadmInit-%E4%BA%94/index.html">
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="kubeadm Init (五)创建kube-apiserver、kube-controller-manager、kube-scheduler的静态pod的yaml文件  创建工作流 该工作流中存在三个子工作流，分别用于创建apiserver、controller-manager、scheduler的静态pod文件    123456789101112131415161718192021func">
 <meta property="og:locale" content="zh_CN">
@@ -32,7 +32,7 @@
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/">
+<link rel="canonical" href="https://xichuanliang.github.io/container/2024/02/20/kubeadmInit-%E4%BA%94/">
 
 
 <script id="page-configurations">
@@ -94,7 +94,7 @@
 
   <div class="site-meta">
 
-    <a href="/container.github.io/" class="brand" rel="start">
+    <a href="/container/" class="brand" rel="start">
       <span class="logo-line-before"><i></i></span>
       <h1 class="site-title">Hexo</h1>
       <span class="logo-line-after"><i></i></span>
@@ -114,12 +114,12 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/container.github.io/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    <a href="/container/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/container.github.io/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    <a href="/container/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
 
   </li>
   </ul>
@@ -150,10 +150,10 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container.github.io/2024/02/20/kubeadmInit-%E4%BA%94/">
+    <link itemprop="mainEntityOfPage" href="https://xichuanliang.github.io/container/2024/02/20/kubeadmInit-%E4%BA%94/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/container.github.io/images/avatar.gif">
+      <meta itemprop="image" content="/container/images/avatar.gif">
       <meta itemprop="name" content="John Doe">
       <meta itemprop="description" content="">
     </span>
@@ -238,11 +238,11 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/container.github.io/2024/02/18/kubeadmInit-%E5%9B%9B/" rel="prev" title="kubeadmInit (四)">
+    <a href="/container/2024/02/18/kubeadmInit-%E5%9B%9B/" rel="prev" title="kubeadmInit (四)">
       <i class="fa fa-chevron-left"></i> kubeadmInit (四)
     </a></div>
       <div class="post-nav-item">
-    <a href="/container.github.io/2024/02/29/kubeadm-init-Finally/" rel="next" title="kubeadm init (Finally)">
+    <a href="/container/2024/02/29/kubeadm-init-Finally/" rel="next" title="kubeadm init (Finally)">
       kubeadm init (Finally) <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
@@ -315,7 +315,7 @@
 <div class="site-state-wrap motion-element">
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
-          <a href="/container.github.io/archives/">
+          <a href="/container/archives/">
         
           <span class="site-state-item-count">11</span>
           <span class="site-state-item-name">日志</span>
@@ -368,19 +368,19 @@
   </div>
 
   
-  <script src="/container.github.io/lib/anime.min.js"></script>
-  <script src="/container.github.io/lib/velocity/velocity.min.js"></script>
-  <script src="/container.github.io/lib/velocity/velocity.ui.min.js"></script>
+  <script src="/container/lib/anime.min.js"></script>
+  <script src="/container/lib/velocity/velocity.min.js"></script>
+  <script src="/container/lib/velocity/velocity.ui.min.js"></script>
 
-<script src="/container.github.io/js/utils.js"></script>
+<script src="/container/js/utils.js"></script>
 
-<script src="/container.github.io/js/motion.js"></script>
-
-
-<script src="/container.github.io/js/schemes/pisces.js"></script>
+<script src="/container/js/motion.js"></script>
 
 
-<script src="/container.github.io/js/next-boot.js"></script>
+<script src="/container/js/schemes/pisces.js"></script>
+
+
+<script src="/container/js/next-boot.js"></script>
 
 
 
