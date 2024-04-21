@@ -27,15 +27,15 @@
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="本文讲述的是k8s中的service的路由，主要是流量从pod-&gt;service-&gt;pod。cni使用的是calico，kubeporxy的模式为ipvs，协议为IPIP。其中pod的网段为100.64.0.0&#x2F;10，service的网段为10.96.0.0&#x2F;22。  pod-&gt;host  每一个pod在创建前，会首先创建一个对应的pause进程，pause进">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/post-host.png">
-<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/pod-host-ping.png">
-<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/netfilter.png">
-<meta property="og:image" content="https://xichuanliang.github.io/container.github.io/images/host-host.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container/images/post-host.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container/images/pod-host-ping.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container/images/netfilter.png">
+<meta property="og:image" content="https://xichuanliang.github.io/container/images/host-host.png">
 <meta property="article:published_time" content="2024-03-23T07:52:03.000Z">
 <meta property="article:modified_time" content="2024-03-23T07:55:10.400Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://xichuanliang.github.io/container.github.io/images/post-host.png">
+<meta name="twitter:image" content="https://xichuanliang.github.io/container/images/post-host.png">
 
 <link rel="canonical" href="https://xichuanliang.github.io/container/2024/03/23/pod-service-pod%E8%B7%AF%E7%94%B1/">
 
@@ -202,7 +202,7 @@
 <li>cni插件会初始化对应的veth网卡，host中的veth另一端相连，从而进行通信。</li>
 <li>当使用veth类型的网卡发送数据包时，host的network namespace中的对端veth会接收到这个数据包，同时，将这个数据包发送到网络协议栈（network protocol stack）进行处理。</li>
 </ul>
-<p><img src="/container.github.io/images/post-host.png"></p>
+<p><img src="/container/images/post-host.png"></p>
 <ul>
 <li>在pod中ping host的ip：<ul>
 <li>由于ping命令只经过网络层、数据链路层。</li>
@@ -218,7 +218,7 @@
 </ul>
 </li>
 </ul>
-<p><img src="/container.github.io/images/pod-host-ping.png"></p>
+<p><img src="/container/images/pod-host-ping.png"></p>
 <ul>
 <li><p>当包到达host的协议栈之后，该怎么走呢？（本文使用的cni为calico，kubeporxy的模式为ipvs，协议为IPIP）</p>
 <ul>
@@ -271,7 +271,7 @@
 </ul>
 </li>
 </ul>
-<p><img src="/container.github.io/images/netfilter.png"></p>
+<p><img src="/container/images/netfilter.png"></p>
 <ul>
 <li><p>此时分两种情况</p>
 </li>
@@ -284,7 +284,7 @@
 </ul>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">default via 192.168.118.2 dev ens33 proto static metric 100</span><br><span class="line">blackhole 100.89.161.128/26 proto bird</span><br><span class="line">100.89.161.144 dev calie390562cd7a scope link</span><br><span class="line">100.89.161.145 dev calid2a2bf1daa5 scope link</span><br><span class="line">100.89.161.146 dev calib4038b4b4dd scope link</span><br><span class="line">100.89.161.148 dev cali05df44af143 scope link</span><br><span class="line">100.89.161.149 dev cali46d30cc017e scope link</span><br><span class="line">100.89.161.150 dev calie3d7af4efc7 scope link</span><br><span class="line">100.99.238.64/26 via 192.168.118.4 dev tunl0 proto bird onlink</span><br><span class="line">172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1</span><br><span class="line">192.168.118.0/24 dev ens33 proto kernel scope link src 192.168.118.3 metric 100</span><br></pre></td></tr></table></figure></li>
 </ul>
-<p><img src="/container.github.io/images/host-host.png"></p>
+<p><img src="/container/images/host-host.png"></p>
 <ul>
 <li>总结：<ul>
 <li>数据包通过pod network namespace进行封装，在传输层封装端口号，在ip层封装ip地址（service的ClusterIp），在数据链路层封装首次封装的是对端veth的mac地址，从而将包发往对端网卡中。从而进入host的network protocal stack中。</li>
